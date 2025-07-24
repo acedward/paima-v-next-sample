@@ -1,0 +1,14 @@
+{
+    "name": "@example/database",
+    "version": "0.3.0",
+    "license": "MIT",
+    "exports": "./src/mod.ts",
+    "imports": {
+        "@paimaexample/runtime": "jsr:@paimaexample/runtime@^0.3.9",
+        "@pgtyped/runtime": "npm:@pgtyped/runtime@2.4.2"
+    },
+    "tasks": {
+        "pgtyped:my-sql": "deno task -f @paimaexample/db db:wait && pgtyped -c ./pgtypedconfig.json",
+        "pgtyped:update": "MIGRATIONS=\"`pwd`/src/migrations/\" concurrently --raw --kill-others \"deno task -f @paimaexample/db db:up\" \"deno task -f @paimaexample/db pgtyped:internal && deno task pgtyped:my-sql\""
+    }
+}
