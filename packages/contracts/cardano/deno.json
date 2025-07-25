@@ -5,7 +5,7 @@
   "exports": {},
   "tasks": {
     "devkit:start": "deno run -A --node-modules-dir npm:@bloxbean/yaci-devkit up",
-    "devkit:wait": "wait-on tcp:3001",
+    "devkit:wait": "wait-on tcp:3001 & wait-on tcp:8090",
     "dolos:fill-template": "deno run -A ./fill-template.ts",
     // rm -rf is required because of this issue: https://github.com/txpipe/dolos/issues/398
     "dolos:start": "rm -rf ./data && rm -rf ./dolos.socket && deno task dolos:fill-template && deno run -A --node-modules-dir npm:@txpipe/dolos bootstrap relay && deno run -A --node-modules-dir npm:@txpipe/dolos daemon",
