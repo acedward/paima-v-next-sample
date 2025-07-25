@@ -11,6 +11,13 @@ deno task dev
 
 # Pending Issues
 
+- [ ] Add script to check dependencies (deno/node/forge) 
+
+- [ ] Viem cannot link from @paimaexample/concise 
+    ```
+    Uncaught SyntaxError: The requested module '/@fs/Users/edwardalvarado/paima-sample/node_modules/.vite/deps/viem.js?v=03f2d257' does not provide an export named 'privateKeyToAccount' (at c20166c16b25e49e88ff55d6cc25071c46cbb54a2eec1884b340a04e6ceee450:7:10)
+    ```
+
 - [x] Fix npm instalation of https://jsr.io/@paimaexample/evm-contracts
 
     We need this a NPM dependency so that hardhat can use remappings.
