@@ -4,6 +4,8 @@
   ],
   "nodeModulesDir": "auto",
   "tasks": {
+    "evm": "deno task -f @example/evm-contracts build && deno task -f @example/evm-contracts deploy:standalone",
+    "dev": "deno task -f @example/node dev",
     "check": "deno check"
   },
   "imports": {},

@@ -4,10 +4,10 @@ import { Value } from "@sinclair/typebox/value";
 import { contractAddressesEvmMain } from "@example/evm-contracts";
 
 const config = Value.Parse(OrchestratorConfig, {
-  logs: "stdout",
+  // logs: "stdout",
   processes: {
-    [ComponentNames.TMUX]: false,
-    [ComponentNames.TUI]: false,
+    [ComponentNames.TMUX]: true,
+    [ComponentNames.TUI]: true,
 
     // Launch Dev DB & Collector
     [ComponentNames.PAIMA_DB]: true,

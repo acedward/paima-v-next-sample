@@ -5,9 +5,8 @@ rm deno.lock
 rm -rf node_modules
 deno install --allow-scripts
 ./patch.sh
-deno task -f @example/evm-contracts build
-deno task -f @example/evm-contracts deploy:standalone
-deno task -f @example/node dev
+deno task evm
+deno task dev
 ```
 
 # Pending Issues
@@ -29,7 +28,7 @@ deno task -f @example/node dev
 
     NOTE We added a new package https://www.npmjs.com/package/@paimaexample/evm-contracts
 
-- [ ] Some tmux/tui launching issue
+- [x] Some tmux/tui launching issue
     ```
     tmux -f "./tmux.conf" new -d -s "paima-1753393573294"
     error: Uncaught (in promise) WouldBlock: Resource temporarily unavailable (os error 35)

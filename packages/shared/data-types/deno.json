@@ -4,9 +4,9 @@
   "license": "MIT",
   "exports": "./src/mod.ts",
   "imports": {
-    "@paimaexample/concise": "jsr:@paimaexample/concise@^0.3.11",
-    "@paimaexample/config": "jsr:@paimaexample/config@^0.3.11",
-    "@paimaexample/utils": "jsr:@paimaexample/utils@^0.3.11",
+    "@paimaexample/concise": "jsr:@paimaexample/concise@^0.3.14",
+    "@paimaexample/config": "jsr:@paimaexample/config@^0.3.14",
+    "@paimaexample/utils": "jsr:@paimaexample/utils@^0.3.14",
     "viem": "npm:viem@^2.21.3",
     "@sinclair/typebox": "npm:@sinclair/typebox@^0.34.30"
   }
