@@ -12,7 +12,7 @@ deno task -f @example/node dev
 
 # Pending Issues
 
-- [ ] Fix npm instalation of https://jsr.io/@paimaexample/evm-contracts
+- [x] Fix npm instalation of https://jsr.io/@paimaexample/evm-contracts
 
     We need this a NPM dependency so that hardhat can use remappings.
     ```
@@ -26,6 +26,8 @@ deno task -f @example/node dev
     Output: 
     Child process exited with: 1
     ```
+
+    NOTE We added a new package https://www.npmjs.com/package/@paimaexample/evm-contracts
 
 - [ ] Some tmux/tui launching issue
     ```
@@ -48,7 +50,7 @@ deno task -f @example/node dev
 
 - [ ] Launch Explorer. We cannot run scripts `vue` throught task. 
 
-- [ ] Pass project name into orchestrator (now @example is hardcoded) - Do we enforce required scripts and namespaces?
+- [x] Pass project name into orchestrator (now @example is hardcoded) - Do we enforce required scripts and namespaces?
 
 - [ ] Some clean script references not available
 
