@@ -1,11 +1,24 @@
 # Install & Start
 
+Get the repository
+```
+git clone https://github.com/acedward/paima-v-next-sample.git
+cd paima-v-next-sample
+```
+Install dependencies
 ```sh
 rm deno.lock
 rm -rf node_modules
 deno install --allow-scripts
 ./patch.sh
+```
+Deploy Contracts
+```
 deno task evm
+```
+
+Launch Node
+```
 deno task dev
 ```
 
@@ -61,6 +74,11 @@ deno task dev
 - [ ] Some clean script references not available
 
 - [ ] Clean up created files (workarounds for import with { type: text })
+
+- [ ] Add Midnight Contracts & Wallet Connector
+
+- [ ] Update to Midnight Paima Enginve Version
+
 # Improvements
 
 - [ ] We can have a better folder structure for new projects
