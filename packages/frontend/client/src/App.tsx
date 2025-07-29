@@ -4,18 +4,14 @@ import "./App.css";
 // Import components
 import { Header } from "./components/Header.tsx";
 import { ColumnsContainer } from "./components/ColumnsContainer.tsx";
-import { TableSection } from "./components/TableSection.tsx";
-import { BatcherInput } from "./components/BatcherInput.tsx";
 import { WalletDemo } from "./components/WalletDemo.tsx";
-import { privateKeyToAccount } from "@paimaexample/concise";
-console.log(
-  privateKeyToAccount(
-    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-  ),
-);
+
 // Import hooks
 import { useBlockchainData } from "./hooks/useBlockchainData.ts";
 import { useTableData } from "./hooks/useTableData.ts";
+
+// Import wallet context
+import { WalletProvider } from "./contexts/WalletContext.tsx";
 
 function App() {
   // Use custom hooks for data management
@@ -65,38 +61,23 @@ function App() {
   }, []);
 
   return (
-    <div className="container">
-      <Header
-        latestBlock={latestBlock}
-        isConnected={isConnected}
-      />
+    <WalletProvider>
+      <div className="container">
+        <Header
+          latestBlock={latestBlock}
+          isConnected={isConnected}
+        />
+        {
+          /*
+        <ColumnsContainer
+          chainConfigs={chainConfigs}
+          newBlockIndices={newBlockIndices}
+        /> */
+        }
 
-      <ColumnsContainer
-        chainConfigs={chainConfigs}
-        newBlockIndices={newBlockIndices}
-      />
-
-      <WalletDemo />
-
-      {
-        /* <TableSection
-        title="Primitive Data"
-        tables={primitiveData}
-      />
-
-      <TableSection
-        title="State Machine Tables"
-        tables={staticTableData}
-      >
-        <BatcherInput />
-      </TableSection>
-
-      <TableSection
-        title="Scheduled Data"
-        tables={scheduledData}
-      /> */
-      }
-    </div>
+        <WalletDemo />
+      </div>
+    </WalletProvider>
   );
 }
 

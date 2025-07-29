@@ -13,6 +13,7 @@
   },
   "imports": {
     "@deno/vite-plugin": "npm:@deno/vite-plugin@^1.0.4",
+    "@midnight-ntwrk/wallet": "npm:@midnight-ntwrk/wallet@^5.0.0",
     "@oak/oak": "jsr:@oak/oak@^17.1.4",
     "@paimaexample/concise": "jsr:@paimaexample/concise@^0.3.14",
     "@paimaexample/utils": "jsr:@paimaexample/utils@^0.3.14",
@@ -24,8 +25,8 @@
     "react-router-dom": "npm:react-router-dom@^7.5.1",
     "vite": "npm:vite@^6.3.2",
     "viem": "npm:viem@^2.21.3",
-    // "viem/accounts": "npm:viem/accounts",
-    // "viem/chains": "npm:viem/chains",
+    "viem/accounts": "npm:viem/accounts",
+    "viem/chains": "npm:viem/chains",
     "vite-plugin-node-stdlib-browser": "npm:vite-plugin-node-stdlib-browser"
   },
   "compilerOptions": {

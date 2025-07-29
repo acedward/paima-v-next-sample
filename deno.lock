@@ -59,6 +59,7 @@
     "npm:@foxglove/crc@^1.0.1": "1.0.1",
     "npm:@metamask/json-rpc-engine@^10.0.3": "10.0.3",
     "npm:@midnight-ntwrk/onchain-runtime@~0.2.6": "0.2.6",
+    "npm:@midnight-ntwrk/wallet@5": "5.0.0_rxjs@7.8.2_@midnight-ntwrk+zswap@4.0.0_ws@8.18.2",
     "npm:@nomicfoundation/hardhat-errors@3.0.0-next.20": "3.0.0-next.20",
     "npm:@nomicfoundation/hardhat-ignition-viem@3.0.0-next.20": "3.0.0-next.20_@nomicfoundation+hardhat-ignition@3.0.0-next.20__hardhat@3.0.0-next.20___zod@3.25.76_@nomicfoundation+hardhat-viem@3.0.0-next.20__hardhat@3.0.0-next.20___zod@3.25.76__viem@2.33.1___ws@8.18.2_@nomicfoundation+ignition-core@3.0.0-next.24_hardhat@3.0.0-next.20__zod@3.25.76_viem@2.33.1__ws@8.18.2",
     "npm:@nomicfoundation/hardhat-ignition@3.0.0-next.20": "3.0.0-next.20_hardhat@3.0.0-next.20__zod@3.25.76",
@@ -119,6 +120,7 @@
     "npm:react@^19.1.0": "19.1.0",
     "npm:superjson@^2.2.1": "2.2.2",
     "npm:tslog@^4.9.3": "4.9.3",
+    "npm:viem@*": "2.33.1_ws@8.18.2",
     "npm:viem@2.23.10": "2.23.10_ws@8.18.1",
     "npm:viem@^2.21.3": "2.33.1_ws@8.18.2",
     "npm:vite-plugin-node-stdlib-browser@*": "0.2.1_node-stdlib-browser@1.3.1_vite@6.3.5__picomatch@4.0.3_@types+node@22.15.15",
@@ -1163,6 +1165,43 @@
     },
     "@midnight-ntwrk/onchain-runtime@0.2.6": {
       "integrity": "sha512-i/I1H/zQVFcjzCTD3ENa9OT2z7MvIHeqiY7/biBO7YQk/Dme5aYeQUczs/79sDih4fRQoeHNtaNVyZNzN6OBLg=="
+    },
+    "@midnight-ntwrk/wallet-api@5.0.0_rxjs@7.8.2": {
+      "integrity": "sha512-L5Z9+v+ouqTtPLoXpngtBVHZ0SmC3zLrCZbuYnd/ul6p9UbwUQ3AQeqMhclv2jhwFRNYsL0fBOqpD5dvs4SvLQ==",
+      "dependencies": [
+        "@midnight-ntwrk/zswap",
+        "rxjs"
+      ]
+    },
+    "@midnight-ntwrk/wallet-sdk-address-format@2.0.0_@midnight-ntwrk+zswap@4.0.0": {
+      "integrity": "sha512-S/3uIfXXUcklYocO0UPey+15uI095CFuCyJRYgxnTmkIXrgjOn8IfSHnReHDtE6JKkvdN2EXlYVt4ufRdCMuPA==",
+      "dependencies": [
+        "@midnight-ntwrk/zswap",
+        "@scure/base@1.2.6"
+      ]
+    },
+    "@midnight-ntwrk/wallet-sdk-capabilities@2.0.0_@midnight-ntwrk+zswap@4.0.0": {
+      "integrity": "sha512-zl1uZwy8bMlpNfze6rRTEMZiOCKr4dYBYoIVKLPkck1vKcz3nhsjFAkNfsYtFyND/K7/7mLZBtuHxGWX4gYxXQ==",
+      "dependencies": [
+        "@midnight-ntwrk/zswap"
+      ]
+    },
+    "@midnight-ntwrk/wallet@5.0.0_rxjs@7.8.2_@midnight-ntwrk+zswap@4.0.0_ws@8.18.2": {
+      "integrity": "sha512-30NjR0w4lOtFrJmwrV0MiFg6QtoKLmCd3e0vy5RxKOvdE8Au6N7O9jiEyZc13c2pk4Pj9ShKL8qukybQhhCuTQ==",
+      "dependencies": [
+        "@midnight-ntwrk/wallet-api",
+        "@midnight-ntwrk/wallet-sdk-address-format",
+        "@midnight-ntwrk/wallet-sdk-capabilities",
+        "@midnight-ntwrk/zswap",
+        "isomorphic-ws",
+        "node-fetch@3.3.2",
+        "rxjs",
+        "scale-ts",
+        "ws@8.18.2"
+      ]
+    },
+    "@midnight-ntwrk/zswap@4.0.0": {
+      "integrity": "sha512-yKfzp4M/wUkqxUJv1D2SizojYdWYnF3FDeKaxPehLPOFC4BrR9KnLZsNR2Y/occ8a4yFDtQXf7bN1QvK5k7Grw=="
     },
     "@noble/ciphers@1.3.0": {
       "integrity": "sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw=="
@@ -3038,6 +3077,9 @@
     "csstype@3.1.3": {
       "integrity": "sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw=="
     },
+    "data-uri-to-buffer@4.0.1": {
+      "integrity": "sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A=="
+    },
     "debug@4.4.1": {
       "integrity": "sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ==",
       "dependencies": [
@@ -3344,6 +3386,13 @@
         "picomatch@4.0.3"
       ]
     },
+    "fetch-blob@3.2.0": {
+      "integrity": "sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==",
+      "dependencies": [
+        "node-domexception",
+        "web-streams-polyfill"
+      ]
+    },
     "find-my-way@9.3.0": {
       "integrity": "sha512-eRoFWQw+Yv2tuYlK2pjFS2jGXSxSppAs3hSQjfxVKxM5amECzIgYYc1FEI8ZmhSh/Ig+FrKEz43NLRKJjYCZVg==",
       "dependencies": [
@@ -3385,6 +3434,12 @@
         "mime-types"
       ]
     },
+    "formdata-polyfill@4.0.10": {
+      "integrity": "sha512-buewHzMvYL29jdeQTVILecSaZKnt/RJWjoZCF5OW60Z67/GmSLBkOFM7qh1PI3zFNtJbaZL5eQu1vLfazOwj4g==",
+      "dependencies": [
+        "fetch-blob"
+      ]
+    },
     "forwarded-parse@2.1.2": {
       "integrity": "sha512-alTFZZQDKMporBH77856pXgzhEzaUVmLCDk+egLgIgHst3Tpndzz8MnKe+GzRJRfvVdn69HhpW7cmXzvtLvJAw=="
     },
@@ -3402,7 +3457,7 @@
         "extend",
         "https-proxy-agent",
         "is-stream",
-        "node-fetch",
+        "node-fetch@2.7.0",
         "uuid"
       ]
     },
@@ -3666,6 +3721,12 @@
     },
     "isomorphic-timers-promises@1.0.1": {
       "integrity": "sha512-u4sej9B1LPSxTGKB/HiuzvEQnXH0ECYkSVQU39koSwmFAxhlEAFl9RdTvLv4TOTQUgBS5O3O5fwUxk6byBZ+IQ=="
+    },
+    "isomorphic-ws@5.0.0_ws@8.18.2": {
+      "integrity": "sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==",
+      "dependencies": [
+        "ws@8.18.2"
+      ]
     },
     "isows@1.0.6_ws@8.18.1": {
       "integrity": "sha512-lPHCayd40oW98/I0uvgaHKWCSvkzY27LjWLbtzOm64yQ+G3Q5npjjbdppU65iZXkK1Zt+kH9pfegli0AYfwYYw==",
@@ -3958,10 +4019,21 @@
       ],
       "bin": true
     },
+    "node-domexception@1.0.0": {
+      "integrity": "sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ=="
+    },
     "node-fetch@2.7.0": {
       "integrity": "sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==",
       "dependencies": [
         "whatwg-url"
+      ]
+    },
+    "node-fetch@3.3.2": {
+      "integrity": "sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA==",
+      "dependencies": [
+        "data-uri-to-buffer",
+        "fetch-blob",
+        "formdata-polyfill"
       ]
     },
     "node-releases@2.0.19": {
@@ -4525,6 +4597,9 @@
     "safe-stable-stringify@2.5.0": {
       "integrity": "sha512-b3rppTKm9T+PsVCBEOUR46GWI7fdOs00VKZ1+9c1EWDaDMvjQc6tUwuFyIprgGgTcWoVHSKrU8H31ZHA2e0RHA=="
     },
+    "scale-ts@1.6.1": {
+      "integrity": "sha512-PBMc2AWc6wSEqJYBDPcyCLUj9/tMKnLX70jLOSndMtcUoLQucP/DM0vnQo1wJAYjTrQiq8iG9rD0q6wFzgjH7g=="
+    },
     "scheduler@0.26.0": {
       "integrity": "sha512-NlHwttCI/l5gCPR3D1nNXtWABUmBwvZpEQiD4IXSbIDq8BzLIK/7Ir5gTFSGZDUu37K5cMNp0hFtzO38sC7gWA=="
     },
@@ -4962,6 +5037,9 @@
         "defaults"
       ]
     },
+    "web-streams-polyfill@3.3.3": {
+      "integrity": "sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw=="
+    },
     "webidl-conversions@3.0.1": {
       "integrity": "sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ=="
     },
@@ -5141,11 +5219,13 @@
           "jsr:@paimaexample/utils@~0.3.14",
           "jsr:@std/assert@^1.0.12",
           "npm:@deno/vite-plugin@^1.0.4",
+          "npm:@midnight-ntwrk/wallet@5",
           "npm:@types/react@^19.1.2",
           "npm:@vitejs/plugin-react@^4.4.1",
           "npm:react-dom@^19.1.0",
           "npm:react-router-dom@^7.5.1",
           "npm:react@^19.1.0",
+          "npm:viem@*",
           "npm:viem@^2.21.3",
           "npm:vite-plugin-node-stdlib-browser@*",
           "npm:vite@^6.3.2"

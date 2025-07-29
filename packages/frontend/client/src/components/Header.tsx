@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal } from "./Modal.tsx";
 import { AddressesTable } from "./AddressesTable.tsx";
 import {
@@ -6,6 +6,7 @@ import {
   DOCUMENTATION_URL,
   ENGINE_OPENAPI_URL,
 } from "../config.ts";
+import { useWallet } from "../contexts/WalletContext.tsx";
 
 interface HeaderProps {
   latestBlock: number;
@@ -17,6 +18,16 @@ export function Header({ latestBlock, isConnected }: HeaderProps) {
   const [isNodeModalOpen, setIsNodeModalOpen] = useState(false);
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [isDocsDropdownOpen, setIsDocsDropdownOpen] = useState(false);
+
+  const {
+    isConnected: walletConnected,
+    address,
+    connectWallet,
+    disconnectWallet,
+  } = useWallet();
+
+  const docsDropdownRef = useRef<HTMLDivElement>(null);
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
@@ -50,39 +61,126 @@ export function Header({ latestBlock, isConnected }: HeaderProps) {
     setIsAddressModalOpen(false);
   };
 
+  const handleWalletConnect = async () => {
+    try {
+      await connectWallet();
+    } catch (error) {
+      console.error("Failed to connect wallet:", error);
+      // You could add a notification here if needed
+    }
+  };
+
+  const handleWalletDisconnect = () => {
+    disconnectWallet();
+  };
+
+  const toggleDocsDropdown = () => {
+    setIsDocsDropdownOpen(!isDocsDropdownOpen);
+  };
+
+  const closeDocsDropdown = () => {
+    setIsDocsDropdownOpen(false);
+  };
+
+  // Handle clicking outside the dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        docsDropdownRef.current &&
+        !docsDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDocsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
     <>
       <header className="header">
-        <h1 className="title">Paime-Engine Demo: Midnight + EVM</h1>
+        <h1 className="title">Midnight/EVM</h1>
         <div className="header-right">
-          <button
-            type="button"
-            className="batcher-api-button"
-            onClick={handleOpenModal}
-          >
-            Batcher API
-          </button>
-          <button
-            type="button"
-            className="node-api-button"
-            onClick={handleOpenNodeModal}
-          >
-            Paima Engine Node API
-          </button>
-          <button
-            type="button"
-            className="documentation-button"
-            onClick={handleOpenDocModal}
-          >
-            Documentation
-          </button>
-          <button
-            type="button"
-            className="addresses-button"
-            onClick={handleOpenAddressModal}
-          >
-            Addresses
-          </button>
+          <div className="docs-dropdown" ref={docsDropdownRef}>
+            <button
+              type="button"
+              className="docs-button"
+              onClick={toggleDocsDropdown}
+            >
+              Docs ▼
+            </button>
+            {isDocsDropdownOpen && (
+              <div className="docs-dropdown-menu">
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    handleOpenModal();
+                    closeDocsDropdown();
+                  }}
+                >
+                  Batcher API
+                </button>
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    handleOpenNodeModal();
+                    closeDocsDropdown();
+                  }}
+                >
+                  Paima Engine Node API
+                </button>
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    handleOpenDocModal();
+                    closeDocsDropdown();
+                  }}
+                >
+                  Documentation
+                </button>
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    handleOpenAddressModal();
+                    closeDocsDropdown();
+                  }}
+                >
+                  Addresses
+                </button>
+              </div>
+            )}
+          </div>
+          {walletConnected
+            ? (
+              <div className="wallet-info">
+                <div className="wallet-address">
+                  {address?.slice(0, 6)}...{address?.slice(-4)}
+                </div>
+                <button
+                  type="button"
+                  className="wallet-disconnect-button"
+                  onClick={handleWalletDisconnect}
+                >
+                  Disconnect
+                </button>
+              </div>
+            )
+            : (
+              <button
+                type="button"
+                className="wallet-connect-button"
+                onClick={handleWalletConnect}
+              >
+                Connect Wallet
+              </button>
+            )}
           <div className="block-info">
             <span>Latest Block:</span>
             <span
