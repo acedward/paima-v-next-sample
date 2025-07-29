@@ -6,8 +6,8 @@
         "check": "deno check src/api.ts"
     },
     "imports": {
-        "@paimaexample/db": "jsr:@paimaexample/db@^0.3.14",
-        "@paimaexample/runtime": "jsr:@paimaexample/runtime@^0.3.14",
+        "@paimaexample/db": "jsr:@paimaexample/db@^0.3.15",
+        "@paimaexample/runtime": "jsr:@paimaexample/runtime@^0.3.15",
         "fastify": "npm:fastify@^5.4.0",
         "@sinclair/typebox": "npm:@sinclair/typebox@^0.34.30",
         "pg": "npm:pg@^8.14.0"
