@@ -23,7 +23,7 @@ import {
   Counter,
   type CounterPrivateState,
   witnesses,
-} from "./contract/src/index.ts";
+} from "./contract/src/index.original.ts";
 import {
   type CoinInfo,
   nativeToken,

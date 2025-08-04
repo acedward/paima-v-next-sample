@@ -25,7 +25,7 @@ import {
   Counter,
   type CounterPrivateState,
   witnesses,
-} from "./contract/src/index.ts";
+} from "@example/my-midnight-contract";
 import {
   type CoinInfo,
   nativeToken,
@@ -182,55 +182,27 @@ const joinContract = async (
 
 const increment = async (
   counterContract: DeployedCounterContract,
-  contractAddress?: string,
-  tokenId?: string,
-  propertyName?: string,
-  propertyValue?: string,
+  contractAddress: bigint,
+  tokenId: bigint,
+  propertyName: string,
+  propertyValue: string,
 ): Promise<FinalizedTxData> => {
   console.log("Incrementing...");
-  // export circuit increment(contract_address_: Uint<254>, token_id_: Uint<254>, property_name_: Bytes<64>, value_: Bytes<64>): [] {
-
-  // Use provided values or fall back to defaults
-  const contractAddr = contractAddress ||
-    "0x1234567890123456789012345678901234567890";
-  const tokenIdValue = tokenId || "default_token";
-  const propName = propertyName || "test A";
-  const propValue = propertyValue || "test B";
 
   console.log(`📝 Using parameters:`);
-  console.log(`   Contract Address: ${contractAddr}`);
-  console.log(`   Token ID: ${tokenIdValue}`);
-  console.log(`   Property Name: ${propName}`);
-  console.log(`   Property Value: ${propValue}`);
-
-  // Convert contract address to BigInt (simplified for demo - in real implementation would need proper conversion)
-  const contractAddrBigInt = BigInt(
-    Math.abs(
-      contractAddr.split("").reduce(
-        (a, b) => (a * 31 + b.charCodeAt(0)) % 1000000,
-        0,
-      ),
-    ),
-  ); // Hash to number
-
-  // Convert token ID to BigInt (if it's numeric, otherwise use hash or similar)
-  const tokenIdBigInt = BigInt(
-    Math.abs(
-      tokenIdValue.split("").reduce(
-        (a, b) => (a * 31 + b.charCodeAt(0)) % 1000000,
-        0,
-      ),
-    ),
-  ); // Hash to number
+  console.log(`   Contract Address: ${contractAddress}`);
+  console.log(`   Token ID: ${tokenId}`);
+  console.log(`   Property Name: ${propertyName}`);
+  console.log(`   Property Value: ${propertyValue}`);
 
   const finalizedTxData = await counterContract.callTx.increment(
-    contractAddrBigInt,
-    tokenIdBigInt,
+    contractAddress,
+    tokenId,
     Uint8Array.from(
-      propName.padEnd(128, " ").split("").map((c) => c.charCodeAt(0)),
+      propertyName.padEnd(128, " ").split("").map((c) => c.charCodeAt(0)),
     ),
     Uint8Array.from(
-      propValue.padEnd(128, " ").split("").map((c) => c.charCodeAt(0)),
+      propertyValue.padEnd(128, " ").split("").map((c) => c.charCodeAt(0)),
     ),
   );
   console.log(
@@ -359,13 +331,9 @@ const configureProviders = async (
   const publicDataProvider = indexerPublicDataProvider(
     config.indexer,
     config.indexerWS,
-    // WS.WebSocket,
   );
 
-  // const zkConfigProvider = new NodeZkConfigProvider<"increment">(
-  //   contractConfig.zkConfigPath,
-  // );
-  const zkConfigPath = window.location.origin; // '../../../contract/src/managed/bboard';
+  const zkConfigPath = window.location.origin;
 
   const zkConfigProvider = new FetchZkConfigProvider(
     zkConfigPath,
@@ -388,158 +356,11 @@ const configureProviders = async (
  * Get contract address from command line arguments or from a file
  */
 const getContractAddress = async (): Promise<string> => {
-  return "0200b5f52945d06b4b1872eb352efa0bf3fc74cb23b9c2a80a120d37ca5ef0d87582";
-  // First try to get from command line arguments
-  // const contractAddressFromArgs = Deno.args[0];
-
-  // if (contractAddressFromArgs) {
-  //   console.log(
-  //     `📋 Using contract address from arguments: ${contractAddressFromArgs}`,
-  //   );
-  //   return contractAddressFromArgs;
-  // }
-
-  // // If not provided via args, try to read from contract_address.txt file
-  // const contractAddressFile = resolve(currentDir, "contract.json");
-
-  // try {
-  //   if (await exists(contractAddressFile)) {
-  //     const contractAddressFromFile = JSON.parse(
-  //       await Deno.readTextFile(contractAddressFile),
-  //     ).contractAddress;
-
-  //     if (contractAddressFromFile) {
-  //       console.log(
-  //         `📄 Using contract address from file ${contractAddressFile}: ${contractAddressFromFile}`,
-  //       );
-  //       return contractAddressFromFile;
-  //     } else {
-  //       throw new Error("Contract address file is empty");
-  //     }
-  //   } else {
-  //     throw new Error(
-  //       `Contract address file not found at ${contractAddressFile}`,
-  //     );
-  //   }
-  // } catch (error) {
-  //   console.error(`❌ Error reading contract address from file: ${error}`);
-  //   console.error("❌ Error: Contract address is required");
-  //   console.error(
-  //     "Usage: deno run --allow-all increment.ts <CONTRACT_ADDRESS>",
-  //   );
-  //   console.error(
-  //     "Or create a contract_address.txt file with the contract address",
-  //   );
-  //   console.error(
-  //     "Example: deno run --allow-all increment.ts 0x1234567890abcdef1234567890abcdef12345678",
-  //   );
-  //   Deno.exit(1);
-  // }
+  const r = await fetch("contract_address/contract.json");
+  const json = await r.json();
+  console.log("🔍 Contract address:", json.contractAddress);
+  return json.contractAddress;
 };
-
-/**
- * Standalone script that joins a counter contract with a specific address and increments its value.
- *
- * Usage:
- *   deno run --allow-all increment.ts <CONTRACT_ADDRESS>
- *   or create a contract_address.txt file with the contract address
- *
- * Example:
- *   deno run --allow-all increment.ts 0x1234567890abcdef1234567890abcdef12345678
- */
-async function joinAndIncrement(): Promise<void> {
-  // Get contract address from command line arguments or file
-  const contractAddress = await getContractAddress();
-
-  console.log(
-    `🚀 Starting join and increment process for contract: ${contractAddress}`,
-  );
-
-  // Initialize configuration
-  const config = new StandaloneConfig();
-
-  let wallet = null;
-
-  try {
-    console.log("🔗 Building wallet with genesis seed for standalone mode...");
-
-    // Build wallet using genesis seed (which has initial funds in standalone mode)
-    wallet = await buildWalletAndWaitForFunds(
-      config,
-      GENESIS_MINT_WALLET_SEED,
-      "contract.json",
-    );
-
-    console.log("✅ Wallet built successfully");
-
-    // Configure providers
-    console.log("⚙️ Configuring providers...");
-    const providers = await configureProviders(wallet, config);
-
-    console.log("✅ Providers configured successfully");
-
-    // Join the contract
-    console.log(`🔗 Joining counter contract at address: ${contractAddress}`);
-    const counterContract = await joinContract(providers, contractAddress);
-
-    console.log("✅ Successfully joined the counter contract");
-
-    // Display current counter value before increment
-    console.log("📊 Displaying current counter value before increment...");
-    const beforeResult = await displayCounterValue(providers, counterContract);
-    console.log(`📊 Current counter value: ${beforeResult.counterValue}`);
-
-    // Increment the counter
-    console.log("🔢 Incrementing counter...");
-    console.log({
-      contractAddress,
-      wallet,
-      Counter,
-      providers,
-      counterContract,
-      beforeResult,
-    });
-    const incrementResult = await increment(counterContract);
-
-    console.log(
-      `✅ Counter incremented successfully! Transaction ID: ${incrementResult.txId}`,
-    );
-    console.log(
-      `✅ Counter incremented! Transaction: ${incrementResult.txId} in block ${incrementResult.blockHeight}`,
-    );
-
-    // Display counter value after increment
-    console.log("📊 Displaying counter value after increment...");
-    const afterResult = await displayCounterValue(providers, counterContract);
-    console.log(`📊 New counter value: ${afterResult.counterValue}`);
-
-    console.log("🎉 Join and increment process completed successfully!");
-  } catch (error) {
-    console.error("❌ Error during join and increment process:", error);
-    console.error("❌ Error:", error instanceof Error ? error.message : error);
-    // Deno.exit(1);
-    throw error;
-  } finally {
-    // Clean up wallet
-    if (wallet) {
-      try {
-        console.log("🧹 Wallet closed successfully");
-        // Deno.exit(0);
-      } catch (error) {
-        console.error("❌ Error closing wallet:", error);
-      }
-    }
-  }
-}
-
-// Run the script if this file is executed directly
-if (import.meta.main) {
-  joinAndIncrement().catch((error) => {
-    console.error("❌ Unhandled error:", error);
-    // Deno.exit(1);
-    throw error;
-  });
-}
 
 // Separate functions for Web App use
 let globalWallet: (Wallet & Resource) | null = null;
@@ -609,10 +430,10 @@ const fetchCurrentCounterState = async (
 };
 
 const incrementCounterValue = async (
-  contractAddress?: string,
-  tokenId?: string,
-  propertyName?: string,
-  propertyValue?: string,
+  contractAddress: number,
+  tokenId: number,
+  propertyName: string,
+  propertyValue: string,
   counterContract?: DeployedCounterContract,
 ): Promise<FinalizedTxData> => {
   const actualContract = counterContract || globalCounterContract;
@@ -624,10 +445,10 @@ const incrementCounterValue = async (
   console.log("🔢 Incrementing counter...");
   const result = await increment(
     actualContract,
-    contractAddress,
-    tokenId,
-    propertyName,
-    propertyValue,
+    BigInt(contractAddress),
+    BigInt(tokenId),
+    propertyName || "",
+    propertyValue || "",
   );
   console.log(
     `✅ Counter incremented successfully! Transaction ID: ${result.txId}`,
@@ -641,5 +462,4 @@ export {
   connectToContract,
   fetchCurrentCounterState,
   incrementCounterValue,
-  joinAndIncrement,
 };

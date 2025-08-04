@@ -7,6 +7,8 @@ import topLevelAwait from "vite-plugin-top-level-await";
 import "react";
 import "react-dom";
 import { viteStaticCopy } from "vite-plugin-static-copy";
+import { normalizePath } from "vite";
+import path from "node:path";
 
 export default defineConfig({
   root: "./client",
@@ -49,12 +51,49 @@ export default defineConfig({
     viteStaticCopy({
       targets: [
         {
-          src: "src/contract/src/managed/counter/keys/*",
+          src: normalizePath(
+            path.resolve(
+              "..",
+              "contracts",
+              "midnight",
+              "contract",
+              "src",
+              "managed",
+              "counter",
+              "keys",
+              "*",
+            ),
+          ),
+          // src: "src/contract/src/managed/counter/keys/*",
           dest: "keys",
         },
         {
-          src: "src/contract/src/managed/counter/zkir/*",
+          src: normalizePath(
+            path.resolve(
+              "..",
+              "contracts",
+              "midnight",
+              "contract",
+              "src",
+              "managed",
+              "counter",
+              "zkir",
+              "*",
+            ),
+          ),
+          // src: "src/contract/src/managed/counter/zkir/*",
           dest: "zkir",
+        },
+        {
+          src: normalizePath(
+            path.resolve(
+              "..",
+              "contracts",
+              "midnight",
+              "contract.json",
+            ),
+          ),
+          dest: "contract_address",
         },
       ],
     }),

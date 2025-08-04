@@ -10,11 +10,6 @@ import {
 } from "../increment.ts";
 import { take, timeout } from "rxjs/operators";
 
-// const connectMidnightWallet = async () => {};
-// const connectToContract = async () => {};
-// const fetchCurrentCounterState = async () => {};
-// const incrementCounterValue = async () => {};
-
 interface EVMWallet {
   privateKey: `0x${string}`;
   address: `0x${string}`;
@@ -29,7 +24,7 @@ interface MidnightWallet {
 }
 
 interface ERC721Token {
-  id: string;
+  id: number;
   name: string;
   owner: string;
   properties: Record<string, string | number>;
@@ -123,13 +118,13 @@ export function WalletDemo() {
   const [isConnectingMidnight, setIsConnectingMidnight] = useState(false);
   const [isIncrementingCounter, setIsIncrementingCounter] = useState(false);
   const [tokens, setTokens] = useState<ERC721Token[]>(generateInitialTokens());
-  const [selectedToken, setSelectedToken] = useState<string | null>(
-    "initial_token_1",
+  const [selectedToken, setSelectedToken] = useState<number | null>(
+    1,
   );
   const [tokenName, setTokenName] = useState<string>("");
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [animatingTokens, setAnimatingTokens] = useState<Set<string>>(
+  const [animatingTokens, setAnimatingTokens] = useState<Set<number>>(
     new Set(),
   );
   const [animatingProperties, setAnimatingProperties] = useState<Set<string>>(
@@ -139,8 +134,8 @@ export function WalletDemo() {
 
   // Increment counter form state
   const [incrementForm, setIncrementForm] = useState({
-    contractAddress: "0x1234567890123456789012345678901234567890",
-    tokenId: "",
+    contractAddress: 1,
+    tokenId: 2,
     propertyName: "Level",
     propertyValue: "1",
   });
@@ -170,7 +165,7 @@ export function WalletDemo() {
   // Removed property suggestion handler as we no longer add properties
 
   // Handle card selection
-  const handleCardSelect = (tokenId: string) => {
+  const handleCardSelect = (tokenId: number) => {
     setSelectedToken(tokenId);
     // No notification for token selection to avoid spam
   };
@@ -188,10 +183,7 @@ export function WalletDemo() {
       );
 
       // Create a deterministic but unique seed for each token
-      const seed = token.id.split("").reduce(
-        (acc, char) => acc + char.charCodeAt(0),
-        0,
-      );
+      const seed = token.id;
 
       // Use the seed to create consistent "random" suggestions for each token
       const shuffled = [...availableSuggestions].sort((a, b) => {
@@ -370,7 +362,7 @@ export function WalletDemo() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       const newToken: ERC721Token = {
-        id: `token_${Date.now()}`,
+        id: Date.now(),
         name: tokenName,
         owner: walletAddress,
         properties: {
@@ -708,12 +700,12 @@ export function WalletDemo() {
                         </label>
                         <input
                           id="contractAddress"
-                          type="text"
+                          type="number"
                           value={incrementForm.contractAddress}
                           onChange={(e) =>
                             setIncrementForm((prev) => ({
                               ...prev,
-                              contractAddress: e.target.value,
+                              contractAddress: Number(e.target.value),
                             }))}
                           className="form-input"
                           placeholder="0x..."
@@ -726,12 +718,12 @@ export function WalletDemo() {
                         </label>
                         <input
                           id="tokenId"
-                          type="text"
+                          type="number"
                           value={incrementForm.tokenId}
                           onChange={(e) =>
                             setIncrementForm((prev) => ({
                               ...prev,
-                              tokenId: e.target.value,
+                              tokenId: Number(e.target.value),
                             }))}
                           className="form-input"
                           placeholder="Select an NFT below"

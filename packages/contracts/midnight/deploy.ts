@@ -36,9 +36,7 @@ import {
   Transaction,
   type TransactionId,
 } from "npm:@midnight-ntwrk/ledger@4.0.0";
-import {
-  deployContract,
-} from "npm:@midnight-ntwrk/midnight-js-contracts@2.0.2";
+import { deployContract } from "npm:@midnight-ntwrk/midnight-js-contracts@2.0.2";
 import {
   Counter,
   type CounterPrivateState,
@@ -221,15 +219,9 @@ const deploy = async () => {
     log.info("Providers configured.");
 
     log.info("Deploying contract...");
-    const counterContractInstance = new Counter.Contract(witnesses);
-    console.log("<>", {
-      providers,
-      contract: counterContractInstance,
-      privateStateId: "counterPrivateState",
-      initialPrivateState: { privateCounter: 0 } as CounterPrivateState,
-    });
+    const contract = new Counter.Contract(witnesses);
     const deployedContract = await deployContract(providers, {
-      contract: counterContractInstance,
+      contract: contract,
       privateStateId: "counterPrivateState",
       initialPrivateState: { privateCounter: 0 } as CounterPrivateState,
     });
@@ -238,6 +230,12 @@ const deploy = async () => {
     const contractAddress =
       deployedContract.deployTxData.public.contractAddress;
     console.log(contractAddress);
+    const outputPath = path.join(currentDir, "contract.json");
+    await Deno.writeTextFile(
+      outputPath,
+      JSON.stringify({ contractAddress }, null, 2),
+    );
+    log.info(`Contract address saved to ${outputPath}`);
   } catch (e) {
     if (e instanceof Error) {
       log.error(`Deployment failed: ${e.message}`);
@@ -249,13 +247,20 @@ const deploy = async () => {
   } finally {
     if (wallet) {
       log.info("Closing wallet...");
-      await wallet.close();
+      /*await wallet.close().catch((e) => {
+        log.error(`Error closing wallet: ${e.message}`);
+      });*/
       log.info("Wallet closed.");
     }
   }
 };
 
-deploy().catch((e) => {
-  console.error("Unhandled error:", e);
-  Deno.exit(1);
-});
+deploy()
+  .then(() => {
+    console.log("Deployment successful");
+    Deno.exit(0);
+  })
+  .catch((e) => {
+    console.error("Unhandled error:", e);
+    Deno.exit(1);
+  });

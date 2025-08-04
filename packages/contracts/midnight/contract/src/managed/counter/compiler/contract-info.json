@@ -1,0 +1,43 @@
+{
+  "circuits": [
+    {
+      "name": "increment",
+      "pure": false,
+      "arguments": [
+        {
+          "name": "contract_address_",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 28948022309329048855892746252171976963317496166410141009864396001978282409983
+          }
+        },
+        {
+          "name": "token_id_",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 28948022309329048855892746252171976963317496166410141009864396001978282409983
+          }
+        },
+        {
+          "name": "property_name_",
+          "type": {
+            "type-name": "Bytes",
+            "length": 128
+          }
+        },
+        {
+          "name": "value_",
+          "type": {
+            "type-name": "Bytes",
+            "length": 128
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    }
+  ]
+}
