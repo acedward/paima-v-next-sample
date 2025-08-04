@@ -1,7 +1,7 @@
 {
   "name": "@example/my-midnight-contract",
   "exports": {
-    ".": "./src/index.ts",
+    ".": "./src/_index.ts",
     "./witnesses": "./src/witnesses.ts"
   },
   "tasks": {

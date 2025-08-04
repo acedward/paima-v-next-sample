@@ -23,7 +23,7 @@ import {
   Counter,
   type CounterPrivateState,
   witnesses,
-} from "./contract/src/index.original.ts";
+} from "./contract/src/_index.ts";
 import {
   type CoinInfo,
   nativeToken,
@@ -119,7 +119,7 @@ class StandaloneConfig implements Config {
   );
   indexer = "http://127.0.0.1:8088/api/v1/graphql";
   indexerWS = "ws://127.0.0.1:8088/api/v1/graphql/ws";
-  node = "http://127.0.0.1:9955";
+  node = "http://127.0.0.1:9944";
   proofServer = "http://127.0.0.1:6300";
   constructor() {
     setNetworkId("Undeployed" as unknown as NetworkId);
@@ -154,15 +154,20 @@ const getCounterLedgerState = async (
       : null;
     const state = state_?.round;
     const contractAddress_ = state_?.contract_address;
+    const token_id = state_?.token_id;
     const property_name = state_?.property_name;
     const value = state_?.value;
 
     console.log(Counter.ledger(contractState?.data));
     console.log(`📊 Ledger state: ${state}`);
     console.log(`📊 Contract address: ${contractAddress_}`);
-    console.log(typeof property_name);
-    console.log(`📊 Property name: ${property_name}`);
-    console.log(`📊 Value: ${value}`);
+    console.log(`📊 Token id: ${token_id}`);
+    console.log(
+      `📊 Property name: ${new TextDecoder("utf-8").decode(property_name)}`,
+    );
+    console.log(
+      `📊 Value: ${new TextDecoder("utf-8").decode(value)}`,
+    );
     return state!;
   } catch (error) {
     console.error("❌ Error getting counter ledger state:", error);
@@ -194,19 +199,11 @@ const increment = async (
     BigInt(1),
     BigInt(2),
     Uint8Array.from(
-      "test A".padEnd(128, " ").split("").map((c) => c.charCodeAt(0)),
+      "test A".padEnd(32, " ").split("").map((c) => c.charCodeAt(0)),
     ),
     Uint8Array.from(
-      "test B".padEnd(128, " ").split("").map((c) => c.charCodeAt(0)),
+      "test B".padEnd(32, " ").split("").map((c) => c.charCodeAt(0)),
     ),
-    // Uint8Array.from(
-    //   "property_name".padEnd(128, " ").split("").map((char) =>
-    //     char.charCodeAt(0)
-    //   ),
-    // ),
-    // Uint8Array.from(
-    //   "value".padEnd(128, " ").split("").map((char) => char.charCodeAt(0)),
-    // ),
   );
   console.log(
     `Transaction ${finalizedTxData.public.txId} added in block ${finalizedTxData.public.blockHeight}`,

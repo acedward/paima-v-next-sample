@@ -199,10 +199,10 @@ const increment = async (
     contractAddress,
     tokenId,
     Uint8Array.from(
-      propertyName.padEnd(128, " ").split("").map((c) => c.charCodeAt(0)),
+      propertyName.padEnd(32, " ").split("").map((c) => c.charCodeAt(0)),
     ),
     Uint8Array.from(
-      propertyValue.padEnd(128, " ").split("").map((c) => c.charCodeAt(0)),
+      propertyValue.padEnd(32, " ").split("").map((c) => c.charCodeAt(0)),
     ),
   );
   console.log(
