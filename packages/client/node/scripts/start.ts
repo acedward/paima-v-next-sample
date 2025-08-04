@@ -6,8 +6,8 @@ import { contractAddressesEvmMain } from "@example/evm-contracts";
 const config = Value.Parse(OrchestratorConfig, {
   // logs: "stdout",
   processes: {
-    [ComponentNames.TMUX]: true,
-    [ComponentNames.TUI]: true,
+    // [ComponentNames.TMUX]: true,
+    // [ComponentNames.TUI]: true,
 
     // Launch Dev DB & Collector
     [ComponentNames.PAIMA_DB]: true,
@@ -34,7 +34,8 @@ const config = Value.Parse(OrchestratorConfig, {
           name: ComponentNames.HARDHAT,
           args: ["task", "-f", "@example/evm-contracts", "chain:start"],
           waitToExit: false,
-          logs: "otel-compatible",
+          // logs: "otel-compatible",
+          logs: "none",
           type: "system-dependency",
         },
         {
@@ -55,7 +56,8 @@ const config = Value.Parse(OrchestratorConfig, {
           name: ComponentNames.YACI_DEVKIT,
           args: ["task", "-f", "@example/cardano-contracts", "devkit:start"],
           waitToExit: false,
-          logs: "otel-compatible",
+          // logs: "otel-compatible",
+          logs: "none",
           type: "system-dependency",
         },
         {
@@ -67,6 +69,7 @@ const config = Value.Parse(OrchestratorConfig, {
           args: ["task", "-f", "@example/cardano-contracts", "dolos:start"],
           waitToExit: false,
           type: "system-dependency",
+          logs: "none",
         },
         {
           name: ComponentNames.DOLOS_WAIT,
@@ -88,6 +91,15 @@ const config = Value.Parse(OrchestratorConfig, {
           logs: "none",
           waitToExit: false,
           type: "system-dependency",
+        },
+        {
+          name: ComponentNames.MIDNIGHT_NODE_WAIT,
+          args: [
+            "task",
+            "-f",
+            "@example/midnight-contracts",
+            "midnight-node:wait",
+          ],
         },
         {
           name: ComponentNames.MIDNIGHT_INDEXER,
@@ -112,12 +124,12 @@ const config = Value.Parse(OrchestratorConfig, {
           type: "system-dependency",
         },
         {
-          name: ComponentNames.MIDNIGHT_NODE_WAIT,
+          name: ComponentNames.MIDNIGHT_PROOF_SERVER_WAIT,
           args: [
             "task",
             "-f",
             "@example/midnight-contracts",
-            "midnight-node:wait",
+            "midnight-proof-server:wait",
           ],
         },
         {
@@ -127,15 +139,6 @@ const config = Value.Parse(OrchestratorConfig, {
             "-f",
             "@example/midnight-contracts",
             "midnight-indexer:wait",
-          ],
-        },
-        {
-          name: ComponentNames.MIDNIGHT_PROOF_SERVER_WAIT,
-          args: [
-            "task",
-            "-f",
-            "@example/midnight-contracts",
-            "midnight-proof-server:wait",
           ],
         },
         /* {

@@ -2,6 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { initialNFTSamples } from "../examples.ts";
 import { useWallet } from "../contexts/WalletContext.tsx";
+import {
+  connectMidnightWallet,
+  connectToContract,
+  fetchCurrentCounterState,
+  incrementCounterValue,
+} from "../increment.ts";
+import { take, timeout } from "rxjs/operators";
+
+// const connectMidnightWallet = async () => {};
+// const connectToContract = async () => {};
+// const fetchCurrentCounterState = async () => {};
+// const incrementCounterValue = async () => {};
 
 interface EVMWallet {
   privateKey: `0x${string}`;
@@ -11,6 +23,9 @@ interface EVMWallet {
 interface MidnightWallet {
   address: string;
   connected: boolean;
+  contractConnected: boolean;
+  currentCounterValue: bigint | null;
+  contractAddress: string | null;
 }
 
 interface ERC721Token {
@@ -24,7 +39,7 @@ interface ERC721Token {
 
 interface Notification {
   id: number;
-  type: "success" | "error" | "info";
+  type: "success" | "error" | "info" | "warning";
   title: string;
   message: string;
 }
@@ -89,35 +104,9 @@ const RANDOM_TOKEN_NAMES = [
   "Rainbow Bridge Collectible",
 ];
 
-// Initial token data with random owners
+// Initial token data - now empty to focus on counter functionality
 const generateInitialTokens = (): ERC721Token[] => {
-  return [];
-
-  const randomOwners = [
-    "0x742d35cc6bbf4c8e3f5a9bd5e5b4b9c3a1234567",
-    "0x8ba1f109551bd432803012645a30215e8d2b0b5c",
-    "0x5aae5c59d6e6ac0b86d1c2b6b9f5c8d2a7654321",
-    "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
-    "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
-  ];
-
-  return initialNFTSamples.map((location, index) => ({
-    id: `initial_token_${index + 1}`,
-    name: `${location.nearbyLandmark} NFT`,
-    owner: randomOwners[index],
-    properties: {
-      streetAddress: location.streetAddress,
-      zipCode: location.zipCode,
-      city: location.city,
-      state: location.state,
-      nearbyLandmark: location.nearbyLandmark,
-      cityFoundingDate: location.cityFoundingDate,
-      rarity: index === 0 ? "legendary" : index < 3 ? "rare" : "common",
-      tokenType: "Location Token",
-    },
-    createdAt: new Date(Date.now() - (index * 24 * 60 * 60 * 1000)), // Stagger creation dates
-    lastModified: new Date(Date.now() - (index * 24 * 60 * 60 * 1000)), // Initially same as creation date
-  }));
+  return []; // No initial tokens to focus on Midnight counter demo
 };
 
 export function WalletDemo() {
@@ -131,13 +120,13 @@ export function WalletDemo() {
   const [midnightWallet, setMidnightWallet] = useState<MidnightWallet | null>(
     null,
   );
+  const [isConnectingMidnight, setIsConnectingMidnight] = useState(false);
+  const [isIncrementingCounter, setIsIncrementingCounter] = useState(false);
   const [tokens, setTokens] = useState<ERC721Token[]>(generateInitialTokens());
   const [selectedToken, setSelectedToken] = useState<string | null>(
     "initial_token_1",
   );
   const [tokenName, setTokenName] = useState<string>("");
-  const [propertyKey, setPropertyKey] = useState<string>("");
-  const [propertyValue, setPropertyValue] = useState<string>("");
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [animatingTokens, setAnimatingTokens] = useState<Set<string>>(
@@ -147,7 +136,14 @@ export function WalletDemo() {
     new Set(),
   );
   const [isCreatingToken, setIsCreatingToken] = useState(false);
-  const [isAddingProperty, setIsAddingProperty] = useState(false);
+
+  // Increment counter form state
+  const [incrementForm, setIncrementForm] = useState({
+    contractAddress: "0x1234567890123456789012345678901234567890",
+    tokenId: "",
+    propertyName: "Level",
+    propertyValue: "1",
+  });
 
   // Generate random token name
   const generateRandomTokenName = () => {
@@ -161,16 +157,17 @@ export function WalletDemo() {
     generateRandomTokenName();
   }, []);
 
-  // Handle property suggestion click
-  const handlePropertySuggestion = (suggestion: PropertySuggestion) => {
-    setPropertyKey(suggestion.key);
-    setPropertyValue(suggestion.value);
-    showNotification(
-      "info",
-      "Property Suggestion Applied",
-      `Set ${suggestion.key} = ${suggestion.value}`,
-    );
-  };
+  // Update tokenId in increment form when selected token changes
+  useEffect(() => {
+    if (selectedToken) {
+      setIncrementForm((prev) => ({
+        ...prev,
+        tokenId: selectedToken,
+      }));
+    }
+  }, [selectedToken]);
+
+  // Removed property suggestion handler as we no longer add properties
 
   // Handle card selection
   const handleCardSelect = (tokenId: string) => {
@@ -239,35 +236,80 @@ export function WalletDemo() {
   // No longer needed as we use MetaMask connection from header
   // const generateNewEVMWallet = () => { ... }
 
-  const connectMidnightWallet = () => {
-    console.log(
-      "🌙 [NETWORK] Connecting to Midnight wallet - would connect to Midnight network here",
-    );
-    // Generate a random Midnight-style address (simulated)
-    const randomBytes = Array.from(
-      { length: 32 },
-      () => Math.floor(Math.random() * 256),
-    );
-    const midnightAddress =
-      "mn_shield-addr_undeployed16y2mkt0cnl42vhm0qfrnu0vnrw5rwa0fqck0knwfzmkkl5svpz7sxqquqxmjkvmek6aaavvd95huvde7e5r5yadzj5q7wp7rc2v5kdeu555ekfae";
-    // const midnightAddress = "mid1" +
-    //   randomBytes.map((b) => b.toString(16).padStart(2, "0")).join("").slice(
-    //     0,
-    //     56,
-    //   );
+  const connectMidnightWalletHandler = async () => {
+    if (isConnectingMidnight) return;
 
-    const newMidnightWallet: MidnightWallet = {
-      address: midnightAddress,
-      connected: true,
-    };
-    setMidnightWallet(newMidnightWallet);
-    showNotification(
-      "success",
-      "Midnight Wallet Connected",
-      `Connected: ${midnightAddress.slice(0, 12)}...${
-        midnightAddress.slice(-8)
-      }`,
-    );
+    setIsConnectingMidnight(true);
+
+    try {
+      console.log("🌙 [NETWORK] Connecting to Midnight wallet...");
+      showNotification(
+        "info",
+        "Connecting to Midnight",
+        "Building wallet and connecting to contract...",
+      );
+
+      // Connect to Midnight wallet
+      const { wallet, providers } = await connectMidnightWallet();
+
+      // Get wallet address - it should already be available from the connection process
+      let walletAddress = "Unknown";
+      try {
+        // Try to get the current state with a timeout
+        const state = await wallet.state().pipe(
+          take(1),
+          timeout(5000), // 5 second timeout
+        ).toPromise();
+        walletAddress = state?.address || "Unknown";
+      } catch (error) {
+        console.warn(
+          "Could not get wallet address immediately, using fallback",
+        );
+        // Fallback: try to get address from wallet properties if available
+        walletAddress = (wallet as any).address || "Unknown";
+      }
+
+      console.log("🔗 [NETWORK] Joining contract...");
+      showNotification(
+        "info",
+        "Joining Contract",
+        "Connecting to the counter contract...",
+      );
+
+      // Join contract and get initial state
+      const { counterContract, currentState } = await connectToContract(
+        providers,
+      );
+
+      const newMidnightWallet: MidnightWallet = {
+        address: walletAddress,
+        connected: true,
+        contractConnected: true,
+        currentCounterValue: currentState.counterValue,
+        contractAddress: currentState.contractAddress,
+      };
+
+      setMidnightWallet(newMidnightWallet);
+
+      showNotification(
+        "success",
+        "Midnight Wallet Connected",
+        `Connected to wallet and contract. Current counter: ${
+          currentState.counterValue ?? "N/A"
+        }`,
+      );
+    } catch (error) {
+      console.error("Failed to connect Midnight wallet:", error);
+      showNotification(
+        "error",
+        "Connection Failed",
+        error instanceof Error
+          ? error.message
+          : "Failed to connect to Midnight wallet",
+      );
+    } finally {
+      setIsConnectingMidnight(false);
+    }
   };
 
   const createERC721Token = async () => {
@@ -370,12 +412,12 @@ export function WalletDemo() {
     }
   };
 
-  const addProperty = async () => {
-    if (!propertyKey.trim() || !propertyValue.trim()) {
+  const incrementCounter = async () => {
+    if (!midnightWallet?.contractConnected) {
       showNotification(
         "error",
-        "Missing Property Data",
-        "Please enter both property key and value",
+        "Contract Not Connected",
+        "Connect to Midnight wallet and contract first",
       );
       return;
     }
@@ -383,85 +425,105 @@ export function WalletDemo() {
     if (!selectedToken) {
       showNotification(
         "error",
-        "No Token Selected",
-        "Please select a token to add properties",
+        "No NFT Selected",
+        "Please select an NFT to add the property to",
       );
       return;
     }
 
-    if (!midnightWallet?.connected) {
+    if (!incrementForm.propertyName || !incrementForm.propertyValue) {
       showNotification(
         "error",
-        "Midnight Wallet Required",
-        "Connect Midnight wallet to add properties",
+        "Missing Property Details",
+        "Please fill in both property name and value",
       );
       return;
     }
 
-    setIsAddingProperty(true);
+    setIsIncrementingCounter(true);
+
+    // Always add the property to the NFT locally first
+    setTokens((prevTokens) =>
+      prevTokens.map((token) =>
+        token.id === selectedToken
+          ? {
+            ...token,
+            properties: {
+              ...token.properties,
+              [incrementForm.propertyName]: incrementForm.propertyValue,
+            },
+            lastModified: new Date(),
+          }
+          : token
+      )
+    );
+
+    // Add animation for the property
+    const propertyKey = `${selectedToken}-${incrementForm.propertyName}`;
+    setAnimatingProperties((prev) => new Set([...prev, propertyKey]));
+    setTimeout(() => {
+      setAnimatingProperties((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(propertyKey);
+        return newSet;
+      });
+    }, 1000);
 
     try {
+      console.log("🏷️ [NETWORK] Adding property to NFT via Midnight network");
+      console.log("📝 [PROPERTY] Contract:", incrementForm.contractAddress);
+      console.log("📝 [PROPERTY] Token ID:", incrementForm.tokenId);
       console.log(
-        `🌙 [NETWORK] Adding property ${propertyKey}=${propertyValue} to token ${selectedToken} via Midnight network`,
+        "📝 [PROPERTY] Property:",
+        incrementForm.propertyName,
+        "=",
+        incrementForm.propertyValue,
       );
 
-      // Show processing notification and add delay
+      // Show processing notification
       showNotification(
         "info",
-        "Processing Property",
-        "Adding property to your NFT on Midnight network...",
+        "Adding Property",
+        `Adding "${incrementForm.propertyName}" property to NFT on Midnight network...`,
       );
 
-      // Add 2000ms delay to simulate network processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Call the increment function with the form parameters
+      const result = await incrementCounterValue(
+        incrementForm.contractAddress,
+        incrementForm.tokenId,
+        incrementForm.propertyName,
+        incrementForm.propertyValue,
+      );
 
-      setTokens((prev) =>
-        prev.map((token) => {
-          if (token.id === selectedToken) {
-            return {
-              ...token,
-              properties: {
-                ...token.properties,
-                [propertyKey]: isNaN(Number(propertyValue))
-                  ? propertyValue
-                  : Number(propertyValue),
-              },
-              lastModified: new Date(),
-            };
+      // Fetch updated state
+      const updatedState = await fetchCurrentCounterState();
+
+      // Update the wallet state with new counter value
+      setMidnightWallet((prev) =>
+        prev
+          ? {
+            ...prev,
+            currentCounterValue: updatedState.counterValue,
           }
-          return token;
-        })
+          : null
       );
 
-      // Add animation for the property being added
-      const propertyAnimationKey = `${selectedToken}-${propertyKey}`;
-      setAnimatingProperties((prev) =>
-        new Set([...prev, propertyAnimationKey])
-      );
-      setTimeout(() => {
-        setAnimatingProperties((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(propertyAnimationKey);
-          return newSet;
-        });
-      }, 800); // Remove animation class after 800ms
-
-      setPropertyKey("");
-      setPropertyValue("");
       showNotification(
         "success",
         "Property Added",
-        `Added ${propertyKey}=${propertyValue} to token`,
+        `Property "${incrementForm.propertyName}: ${incrementForm.propertyValue}" added to NFT successfully! Transaction: ${result.txId}`,
       );
     } catch (error) {
       console.error("Failed to add property:", error);
       showNotification(
-        "error",
-        "Property Addition Failed",
-        "Failed to add property to token",
+        "warning",
+        "Property Added Locally",
+        `Property "${incrementForm.propertyName}: ${incrementForm.propertyValue}" was added to your NFT locally, but the blockchain transaction failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
       );
     } finally {
-      setIsAddingProperty(false);
+      setIsIncrementingCounter(false);
     }
   };
 
@@ -479,6 +541,7 @@ export function WalletDemo() {
               <div className="notification-message">{notification.message}</div>
             </div>
             <button
+              type="button"
               onClick={() => removeNotification(notification.id)}
               className="notification-close"
             >
@@ -504,8 +567,9 @@ export function WalletDemo() {
         <div className="wallet-demo-content">
           <div className="wallet-demo-intro">
             <p>
-              Demonstrating the power of EVM wallets + Midnight wallets running
-              across different blockchains with synchronized token management.
+              Demonstrating EVM wallet connection for token creation and
+              Midnight wallet connection for counter increment operations across
+              different blockchains.
             </p>
           </div>
 
@@ -544,6 +608,7 @@ export function WalletDemo() {
                       className="token-name-input evm-input"
                     />
                     <button
+                      type="button"
                       onClick={generateRandomTokenName}
                       className="wallet-button evm-button random-name-btn"
                       title="Generate random name"
@@ -551,6 +616,7 @@ export function WalletDemo() {
                       🎲
                     </button>
                     <button
+                      type="button"
                       onClick={createERC721Token}
                       className="wallet-button evm-button"
                       disabled={!tokenName.trim() || isCreatingToken}
@@ -589,57 +655,138 @@ export function WalletDemo() {
                   </span>
                 </div>
 
+                {midnightWallet?.connected && (
+                  <div className="contract-status">
+                    <div className="contract-info">
+                      <span className="contract-label">Contract:</span>
+                      <span className="contract-address">
+                        {midnightWallet.contractConnected
+                          ? `${midnightWallet.contractAddress?.slice(0, 8)}...${
+                            midnightWallet.contractAddress?.slice(-6)
+                          }`
+                          : "Not connected"}
+                      </span>
+                    </div>
+                    <div className="counter-value">
+                      <span className="counter-label">Counter Value:</span>
+                      <span className="counter-number">
+                        {midnightWallet.currentCounterValue?.toString() ??
+                          "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <button
-                  onClick={connectMidnightWallet}
+                  type="button"
+                  onClick={connectMidnightWalletHandler}
                   className="wallet-button midnight-button"
+                  disabled={isConnectingMidnight}
                 >
-                  Connect Midnight Wallet
+                  {isConnectingMidnight
+                    ? (
+                      <>
+                        <span className="loader"></span>
+                        Connecting...
+                      </>
+                    )
+                    : midnightWallet?.connected
+                    ? "✅ Midnight Wallet Connected"
+                    : "Connect Midnight Wallet"}
                 </button>
               </div>
 
-              {midnightWallet?.connected && selectedToken && (
-                <div className="property-addition">
-                  <h4 className="property-title">Add Token Properties</h4>
+              {midnightWallet?.contractConnected && (
+                <div className="counter-operations">
+                  <h4 className="counter-title">Add NFT Property</h4>
 
-                  {/* Property Suggestions */}
-                  <div className="property-suggestions">
-                    <div className="suggestions-label">Quick suggestions:</div>
-                    <div className="suggestions-grid">
-                      {PROPERTY_SUGGESTIONS.slice(0, 6).map((suggestion) => (
-                        <button
-                          key={suggestion.key}
-                          onClick={() => handlePropertySuggestion(suggestion)}
-                          className="suggestion-button"
-                          title={suggestion.description}
-                        >
-                          {suggestion.key}
-                        </button>
-                      ))}
+                  <div className="increment-form">
+                    <div className="form-table">
+                      <div className="form-row">
+                        <label htmlFor="contractAddress" className="form-label">
+                          Contract Address:
+                        </label>
+                        <input
+                          id="contractAddress"
+                          type="text"
+                          value={incrementForm.contractAddress}
+                          onChange={(e) =>
+                            setIncrementForm((prev) => ({
+                              ...prev,
+                              contractAddress: e.target.value,
+                            }))}
+                          className="form-input"
+                          placeholder="0x..."
+                        />
+                      </div>
+
+                      <div className="form-row">
+                        <label htmlFor="tokenId" className="form-label">
+                          Token ID:
+                        </label>
+                        <input
+                          id="tokenId"
+                          type="text"
+                          value={incrementForm.tokenId}
+                          onChange={(e) =>
+                            setIncrementForm((prev) => ({
+                              ...prev,
+                              tokenId: e.target.value,
+                            }))}
+                          className="form-input"
+                          placeholder="Select an NFT below"
+                          disabled
+                        />
+                      </div>
+
+                      <div className="form-row">
+                        <label htmlFor="propertyName" className="form-label">
+                          Property Name:
+                        </label>
+                        <input
+                          id="propertyName"
+                          type="text"
+                          value={incrementForm.propertyName}
+                          onChange={(e) =>
+                            setIncrementForm((prev) => ({
+                              ...prev,
+                              propertyName: e.target.value,
+                            }))}
+                          className="form-input"
+                          placeholder="e.g., Level, Strength, Rarity"
+                        />
+                      </div>
+
+                      <div className="form-row">
+                        <label htmlFor="propertyValue" className="form-label">
+                          Property Value:
+                        </label>
+                        <input
+                          id="propertyValue"
+                          type="text"
+                          value={incrementForm.propertyValue}
+                          onChange={(e) =>
+                            setIncrementForm((prev) => ({
+                              ...prev,
+                              propertyValue: e.target.value,
+                            }))}
+                          className="form-input"
+                          placeholder="e.g., 1, Legendary, 100"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="property-input-group">
-                    <input
-                      type="text"
-                      value={propertyKey}
-                      onChange={(e) => setPropertyKey(e.target.value)}
-                      placeholder="Property name (e.g., size, color)"
-                      className="property-input midnight-input"
-                    />
-                    <input
-                      type="text"
-                      value={propertyValue}
-                      onChange={(e) => setPropertyValue(e.target.value)}
-                      placeholder="Property value (e.g., 300, red)"
-                      className="property-input midnight-input"
-                    />
+                  <div className="counter-actions">
                     <button
-                      onClick={addProperty}
-                      className="wallet-button midnight-button"
-                      disabled={!propertyKey.trim() || !propertyValue.trim() ||
-                        isAddingProperty}
+                      type="button"
+                      onClick={incrementCounter}
+                      className="wallet-button midnight-button increment-button"
+                      disabled={isIncrementingCounter || !selectedToken ||
+                        !incrementForm.propertyName ||
+                        !incrementForm.propertyValue}
                     >
-                      {isAddingProperty
+                      {isIncrementingCounter
                         ? (
                           <>
                             <span className="loader"></span>
@@ -647,9 +794,28 @@ export function WalletDemo() {
                           </>
                         )
                         : (
-                          "Add Property"
+                          "🏷️ Add Property to NFT"
                         )}
                     </button>
+                  </div>
+
+                  <div className="counter-description">
+                    <p>
+                      Select an NFT below and fill in the property details
+                      above. Click the button to add the property to your
+                      selected NFT via the Midnight blockchain.
+                    </p>
+                    {!selectedToken && (
+                      <p
+                        style={{
+                          color: "#f59e0b",
+                          fontSize: "14px",
+                          marginTop: "8px",
+                        }}
+                      >
+                        ⚠️ Please select an NFT from the cards below first.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -715,13 +881,15 @@ export function WalletDemo() {
                                   ) => (
                                     <button
                                       key={`${token.id}-${suggestion.key}`}
+                                      type="button"
                                       onClick={(e) => {
                                         e.stopPropagation(); // Prevent card selection
                                         handleCardSelect(token.id); // Select the card first
-                                        handlePropertySuggestion(suggestion); // Then apply suggestion
+                                        // Note: Property suggestions disabled for counter demo
                                       }}
                                       className="card-suggestion-tag"
                                       title={suggestion.description}
+                                      disabled
                                     >
                                       {suggestion.key}
                                     </button>
@@ -808,6 +976,10 @@ export function WalletDemo() {
 
           .wallet-demo-notification.info {
             background: #3b82f6;
+          }
+
+          .wallet-demo-notification.warning {
+            background: #f59e0b;
           }
 
           .notification-title {
@@ -1059,7 +1231,7 @@ export function WalletDemo() {
             transform: none;
           }
 
-          .token-creation, .property-addition {
+          .token-creation, .counter-operations {
             margin-top: 20px;
           }
 
@@ -1101,11 +1273,135 @@ export function WalletDemo() {
             box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.1);
           }
 
-          .property-title {
+          .counter-title {
             color: #f0f9ff;
             margin-bottom: 15px;
             font-size: 1.1rem;
             font-weight: 600;
+          }
+
+          .contract-status {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #64748b;
+            border-radius: 8px;
+          }
+
+          .contract-info,
+          .counter-value {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+          }
+
+          .counter-value:last-child {
+            margin-bottom: 0;
+          }
+
+          .contract-label,
+          .counter-label {
+            font-weight: 600;
+            color: #f0f9ff;
+          }
+
+          .contract-address {
+            font-family: monospace;
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #64748b;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+          }
+
+          .counter-number {
+            font-family: monospace;
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 1.1rem;
+          }
+
+          .counter-operations {
+            margin-top: 20px;
+          }
+
+          .increment-form {
+            margin-bottom: 20px;
+          }
+
+          .form-table {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #64748b;
+          }
+
+          .form-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+          }
+
+          .form-label {
+            color: #f0f9ff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            min-width: 140px;
+            text-align: right;
+            flex-shrink: 0;
+          }
+
+          .form-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid #64748b;
+            border-radius: 6px;
+            background: #1e293b;
+            color: #f0f9ff;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+          }
+
+          .form-input:focus {
+            outline: none;
+            border-color: #94a3b8;
+            box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.1);
+          }
+
+          .form-input:disabled {
+            background: #334155;
+            color: #94a3b8;
+            cursor: not-allowed;
+          }
+
+          .counter-actions {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+          }
+
+          .increment-button {
+            font-size: 1rem;
+            padding: 15px 25px;
+            font-weight: 700;
+          }
+
+          .counter-description {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.4;
           }
 
           .property-suggestions {
@@ -1478,6 +1774,19 @@ export function WalletDemo() {
             .card-suggestion-tag {
               font-size: 0.8rem;
               padding: 5px 10px;
+            }
+          }
+
+          @media (max-width: 640px) {
+            .form-row {
+              flex-direction: column;
+              align-items: stretch;
+              gap: 8px;
+            }
+
+            .form-label {
+              text-align: left;
+              min-width: auto;
             }
           }
 

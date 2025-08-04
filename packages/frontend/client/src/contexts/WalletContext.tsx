@@ -6,16 +6,28 @@ import {
   useState,
 } from "react";
 import { createWalletClient, custom, type WalletClient } from "viem";
-import { WalletBuilder } from "@midnight-ntwrk/wallet";
+// import { WalletBuilder } from "@midnight-ntwrk/wallet";
 import * as MidnightWallet from "@midnight-ntwrk/wallet";
-
 console.log("🔗 [WALLET] MidnightWallet", MidnightWallet);
+// Cannot import:
+// ../../node_modules/.deno/@midnight-ntwrk+compact-runtime@0.8.1/node_modules/
+// @midnight-ntwrk/compact-runtime/dist/runtime.js:43:21:
+// ERROR: This require call is not allowed because the transitive dependency
+// "vite-plugin-wasm-namespace:/Users/username/paima-sample/node_modules/
+// .deno/@midnight-ntwrk+onchain-runtime@0.3.0/node_modules/@midnight-ntwrk/
+// onchain-runtime/midnight_onchain_runtime_wasm_bg.wasm" contains a top-level await
+// import {
+// getLedgerNetworkId,
+// getZswapNetworkId,
+// } from "@midnight-ntwrk/midnight-js-network-id";
+
+// Removed automatic Midnight wallet connection - now handled manually via UI
 
 interface WalletContextType {
   isConnected: boolean;
   address: string | null;
   walletClient: WalletClient | null;
-  connectWallet: () => Promise<void>;
+  connectEvmWallet: () => Promise<void>;
   disconnectWallet: () => void;
   signMessage: (message: string) => Promise<string>;
 }
@@ -66,7 +78,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
     }
   };
 
-  const connectWallet = async () => {
+  const connectEvmWallet = async () => {
     if (typeof window !== "undefined" && window.ethereum) {
       try {
         const accounts = await window.ethereum.request({
@@ -151,7 +163,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
     isConnected,
     address,
     walletClient,
-    connectWallet,
+    connectEvmWallet,
     disconnectWallet,
     signMessage,
   };

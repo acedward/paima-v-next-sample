@@ -4,7 +4,7 @@
     "license": "MIT",
     "exports": "./src/mod.ts",
     "imports": {
-        "@paimaexample/runtime": "jsr:@paimaexample/runtime@^0.3.15",
+        "@paimaexample/runtime": "jsr:@paimaexample/runtime@^0.3.16",
         "@pgtyped/runtime": "npm:@pgtyped/runtime@2.4.2"
     },
     "tasks": {

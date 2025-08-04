@@ -23,7 +23,7 @@ export function Header({ latestBlock, isConnected }: HeaderProps) {
   const {
     isConnected: walletConnected,
     address,
-    connectWallet,
+    connectEvmWallet,
     disconnectWallet,
   } = useWallet();
 
@@ -63,7 +63,7 @@ export function Header({ latestBlock, isConnected }: HeaderProps) {
 
   const handleWalletConnect = async () => {
     try {
-      await connectWallet();
+      await connectEvmWallet();
     } catch (error) {
       console.error("Failed to connect wallet:", error);
       // You could add a notification here if needed
