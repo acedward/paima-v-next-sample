@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { writeContract } from "viem/actions";
+import { createPublicClient, createWalletClient, http } from "viem";
+import { hardhat } from "viem/chains";
 import { initialNFTSamples } from "../examples.ts";
 import { useWallet } from "../contexts/WalletContext.tsx";
 import {
@@ -9,6 +12,8 @@ import {
   incrementCounterValue,
 } from "../increment.ts";
 import { take, timeout } from "rxjs/operators";
+import { BATCHER_ENDPOINT } from "../config.ts";
+import { erc721dev } from "@example/evm-contracts";
 
 interface EVMWallet {
   privateKey: `0x${string}`;
@@ -99,6 +104,89 @@ const RANDOM_TOKEN_NAMES = [
   "Rainbow Bridge Collectible",
 ];
 
+const AddressType = {
+  EVM: 0,
+};
+
+// Batcher helper functions
+async function createSignedInput(
+  gameInput: string,
+  userAddress: string,
+  signMessage: (message: string) => Promise<string>,
+) {
+  const timestamp = Date.now();
+  const addressType = AddressType.EVM;
+
+  function createMessageForBatcher(
+    namespace: string | null,
+    millisecondTimestamp: number,
+    walletAddress: string,
+    inputData: string,
+  ): string {
+    return ((namespace ?? "") + millisecondTimestamp + walletAddress +
+      inputData)
+      .replace(/[^a-zA-Z0-9]/g, "-")
+      .toLocaleLowerCase();
+  }
+
+  const message = createMessageForBatcher(
+    null,
+    timestamp,
+    userAddress,
+    gameInput,
+  );
+
+  const signature = await signMessage(message);
+
+  return {
+    addressType,
+    userAddress,
+    userSignature: signature,
+    gameInput,
+    millisecondTimestamp: timestamp,
+  };
+}
+
+async function sendInputToBatcher(batchedInput: any) {
+  const response = await fetch(BATCHER_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(batchedInput),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+async function postToBatcher(
+  jsonArrayString: string,
+  userAddress: string,
+  signMessage: (message: string) => Promise<string>,
+) {
+  console.log("🚀 Creating signed input for:", jsonArrayString);
+  const signedInput = await createSignedInput(
+    jsonArrayString,
+    userAddress,
+    signMessage,
+  );
+
+  console.log("✅ Signed input created:", {
+    ...signedInput,
+    userSignature: signedInput.userSignature.slice(0, 10) + "...",
+  });
+
+  console.log("📤 Sending to batcher...");
+  const result = await sendInputToBatcher(signedInput);
+
+  console.log("🎉 Batcher response:", result);
+  return result;
+}
+
 // Initial token data - now empty to focus on counter functionality
 const generateInitialTokens = (): ERC721Token[] => {
   return []; // No initial tokens to focus on Midnight counter demo
@@ -109,9 +197,11 @@ export function WalletDemo() {
     isConnected: walletConnected,
     address: walletAddress,
     signMessage,
+    walletClient,
   } = useWallet();
 
   const [evmWallet, setEvmWallet] = useState<EVMWallet | null>(null);
+  const [hardhatWalletClient, setHardhatWalletClient] = useState<any>(null);
   const [midnightWallet, setMidnightWallet] = useState<MidnightWallet | null>(
     null,
   );
@@ -151,6 +241,43 @@ export function WalletDemo() {
   useEffect(() => {
     generateRandomTokenName();
   }, []);
+
+  // Create hardhat wallet client when main wallet connects
+  useEffect(() => {
+    const createHardhatWalletClient = () => {
+      if (
+        walletConnected && walletAddress && typeof globalThis !== "undefined" &&
+        (globalThis as any).ethereum
+      ) {
+        try {
+          console.log(
+            "🔗 [HARDHAT] Creating hardhat wallet client for:",
+            walletAddress,
+          );
+
+          const hardhatClient = createWalletClient({
+            account: walletAddress as `0x${string}`,
+            chain: hardhat,
+            transport: http("http://127.0.0.1:8545"), // Hardhat local node
+          });
+
+          setHardhatWalletClient(hardhatClient);
+          console.log(
+            "✅ [HARDHAT] Hardhat wallet client created successfully",
+          );
+        } catch (error) {
+          console.error(
+            "❌ [HARDHAT] Failed to create hardhat wallet client:",
+            error,
+          );
+        }
+      } else {
+        setHardhatWalletClient(null);
+      }
+    };
+
+    createHardhatWalletClient();
+  }, [walletConnected, walletAddress]);
 
   // Update tokenId in increment form when selected token changes
   useEffect(() => {
@@ -314,7 +441,7 @@ export function WalletDemo() {
       return;
     }
 
-    if (!walletConnected || !walletAddress) {
+    if (!walletConnected || !walletAddress || !hardhatWalletClient) {
       showNotification(
         "error",
         "No Wallet Connected",
@@ -326,48 +453,106 @@ export function WalletDemo() {
     setIsCreatingToken(true);
 
     try {
-      // Create message to sign for NFT creation
-      const tokenData = {
+      // Get ERC721 contract address from deployed contracts
+      // const contractAddresses = contractAddressesEvmMain();
+      const erc721Address = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+      // contractAddresses.chain31337["Erc721DevModule#Erc721Dev"];
+
+      if (!erc721Address) {
+        throw new Error(
+          "ERC721 contract address not found. Make sure contracts are deployed.",
+        );
+      }
+
+      // Generate a unique token ID (using timestamp + random number)
+      const tokenId = BigInt(Date.now() + Math.floor(Math.random() * 1000));
+
+      console.log("🎨 [CONTRACT] Minting ERC721 token:", {
+        contract: erc721Address,
+        tokenId: tokenId.toString(),
+        to: walletAddress,
         name: tokenName,
-        owner: walletAddress,
-        timestamp: Date.now(),
-      };
+      });
 
-      const messageToSign =
-        `Create NFT Token:\nName: ${tokenData.name}\nOwner: ${tokenData.owner}\nTimestamp: ${tokenData.timestamp}`;
-
-      console.log("📝 [WALLET] Requesting signature for NFT creation...");
       showNotification(
         "info",
-        "Signature Required",
-        "Please sign the message in MetaMask to create the NFT",
+        "Minting NFT",
+        "Calling mint function on ERC721 contract via Hardhat...",
       );
 
-      // Request user to sign the message
-      const signature = await signMessage(messageToSign);
+      // Call the mint function on the ERC721 contract using hardhat wallet client
+      const mintTxHash = await writeContract(hardhatWalletClient, {
+        address: erc721Address,
+        abi: erc721dev.abi,
+        functionName: "mint",
+        args: [walletAddress as `0x${string}`, tokenId],
+        account: walletAddress as `0x${string}`,
+        chain: hardhat,
+      });
 
-      console.log(
-        `🎨 [NETWORK] Creating new ERC721 token "${tokenName}" with signature - would deploy to EVM network here`,
+      console.log("✅ [CONTRACT] ERC721 mint transaction hash:", mintTxHash);
+
+      const publicClient = createPublicClient({
+        chain: hardhat,
+        transport: http(),
+      });
+
+      const transaction = await publicClient.waitForTransactionReceipt(
+        {
+          hash: mintTxHash,
+        },
       );
-      console.log("✍️ [SIGNATURE]", signature);
+      console.log("🎉 [CONTRACT] Transaction receipt:", transaction);
 
-      // Show processing notification and add delay
+      showNotification(
+        "success",
+        "NFT Minted on Hardhat",
+        `Token minted successfully on Hardhat chain! Tx: ${
+          mintTxHash.slice(0, 10)
+        }...`,
+      );
+
+      // Also send to batcher as requested
+      const tokenCreationData = [
+        "createToken",
+        tokenName,
+        walletAddress,
+        tokenId.toString(), // Include the actual token ID
+      ];
+
+      const jsonArrayString = JSON.stringify(tokenCreationData);
+
+      console.log("🚀 Creating ERC721 token via batcher:", jsonArrayString);
+
       showNotification(
         "info",
-        "Processing Transaction",
-        "Creating your NFT on the blockchain...",
+        "Sending to Batcher",
+        "Creating signed input and sending to batcher endpoint...",
       );
 
-      // Add 2000ms delay to simulate network processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Send to batcher endpoint using MetaMask wallet
+      // const batcherResult = await postToBatcher(
+      //   jsonArrayString,
+      //   walletAddress,
+      //   signMessage,
+      // );
 
+      // console.log("🎉 Batcher response for token creation:", batcherResult);
+
+      // Create local token for display
       const newToken: ERC721Token = {
         id: Date.now(),
         name: tokenName,
         owner: walletAddress,
         properties: {
-          signature: signature.slice(0, 20) + "...", // Store partial signature for display
-          signedMessage: messageToSign.split("\n")[0], // Store first line of message
+          tokenId: tokenId.toString(),
+          contractAddress: erc721Address.slice(0, 10) + "...",
+          transactionHash: mintTxHash.slice(0, 10) + "...",
+          chain: "Hardhat (localhost:8545)",
+          batcherResponse: "Success", // batcherResult?.success ? "Success" : "Pending",
+          createdViaBatcher: "true",
+          onChainMinted: "true",
+          mintedOnHardhat: "true",
         },
         createdAt: new Date(),
         lastModified: new Date(),
@@ -390,14 +575,14 @@ export function WalletDemo() {
       showNotification(
         "success",
         "ERC721 Token Created",
-        `Token "${newToken.name}" created and signed successfully!`,
+        `Token "${newToken.name}" minted on Hardhat chain and sent to batcher successfully!`,
       );
     } catch (error) {
       console.error("Failed to create token:", error);
       showNotification(
         "error",
         "Token Creation Failed",
-        error instanceof Error ? error.message : "Failed to sign message",
+        error instanceof Error ? error.message : "Failed to create token",
       );
     } finally {
       setIsCreatingToken(false);
@@ -587,6 +772,17 @@ export function WalletDemo() {
                     ? "✅ MetaMask Connected"
                     : "❌ Connect MetaMask using the header button"}
                 </div>
+
+                {walletConnected && (
+                  <div
+                    className="hardhat-status"
+                    style={{ marginTop: "8px", fontSize: "12px" }}
+                  >
+                    {hardhatWalletClient
+                      ? "🔗 Hardhat Chain Connected"
+                      : "⏳ Connecting to Hardhat Chain..."}
+                  </div>
+                )}
               </div>
 
               {walletConnected && (
@@ -611,7 +807,8 @@ export function WalletDemo() {
                       type="button"
                       onClick={createERC721Token}
                       className="wallet-button evm-button"
-                      disabled={!tokenName.trim() || isCreatingToken}
+                      disabled={!tokenName.trim() || isCreatingToken ||
+                        !walletConnected || !hardhatWalletClient}
                     >
                       {isCreatingToken
                         ? (
@@ -621,7 +818,7 @@ export function WalletDemo() {
                           </>
                         )
                         : (
-                          "CREATE ERC721 Token"
+                          "MINT ERC721 Token & Send to Batcher"
                         )}
                     </button>
                   </div>

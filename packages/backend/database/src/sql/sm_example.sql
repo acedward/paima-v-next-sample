@@ -27,3 +27,9 @@ VALUES
 (:sum!, :block_height!) 
 ;
 
+-- /* @name insertEvmMidnight */
+-- INSERT INTO evm_midnight 
+-- (contract_address, token_id, property_name, value, block_height) 
+-- VALUES 
+-- (:contract_address!, :token_id!, :property_name!, :value!, :block_height!) 
+-- ;

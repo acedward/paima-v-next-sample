@@ -23,77 +23,106 @@ async function sum(a: number, b: number) {
   return a + b;
 }
 
-stm.addStateTransition(
-  "attack",
-  function* (data) {
-    // Example 1:
-    // How to write in the DB.
-    yield* World.resolve(insertStateMachineInput, {
-      inputs:
-        `attack playerId: ${data.parsedInput.playerId} with moveId: ${data.parsedInput.moveId}`,
-      block_height: data.blockHeight,
-    });
+const datax: {
+  contractAddress: string;
+  tokenId: string;
+  propertyName: string;
+  value: string;
+  blockHeight: number;
+}[] = [];
 
-    // Example 2:
-    // How to read from the DB.
-    const [lastSum] = yield* World.resolve(
-      getLastSumFromExampleTable,
-      undefined,
+stm.addStateTransition(
+  "midnightContractState",
+  function* (data) {
+    console.log(
+      "🎉 [CONTRACT] Transaction receipt:",
+      data.parsedInput.payload.content[0].content,
+      data.parsedInput.payload.content[1].content,
+      data.parsedInput.payload.content[2].content,
+      data.parsedInput.payload.content[3].content,
+      data.parsedInput.payload.content[4].content,
     );
-    // Example 3:
-    // How to use the random generator.
-    const value = lastSum ? lastSum.sum : data.randomGenerator.nextInt(10, 99);
-
-    // Example 4:
-    // How to run a custom promise.
-    const result = yield* World.promise(sum(value, 3));
-
-    // Example 5:
-    // How to write in the DB.
-    yield* World.resolve(insertSumIntoExampleTable, {
-      sum: result,
-      block_height: data.blockHeight,
-    });
-    return;
+    // datax.push({
+    //   contractAddress: data.parsedInput.payload.content.value[0],
+    //   tokenId: data.parsedInput.payload.map((x) => x.value[1]),
+    //   propertyName: data.parsedInput.payload.map((x) => x.value[2]),
+    //   value: data.parsedInput.payload.map((x) => x.value[3]),
+    //   blockHeight: data.blockHeight,
+    // });
   },
 );
 
-stm.addStateTransition(
-  "throw_error",
-  function* (data) {
-    throw new Error("This is a test error");
-  },
-);
+// stm.addStateTransition(
+//   "attack",
+//   function* (data) {
+//     // Example 1:
+//     // How to write in the DB.
+//     yield* World.resolve(insertStateMachineInput, {
+//       inputs:
+//         `attack playerId: ${data.parsedInput.playerId} with moveId: ${data.parsedInput.moveId}`,
+//       block_height: data.blockHeight,
+//     });
 
-stm.addStateTransition(
-  "schedule",
-  function* (data) {
-    const { tick, message, type } = data.parsedInput;
-    const playerId = parseInt(message);
+//     // Example 2:
+//     // How to read from the DB.
+//     const [lastSum] = yield* World.resolve(
+//       getLastSumFromExampleTable,
+//       undefined,
+//     );
+//     // Example 3:
+//     // How to use the random generator.
+//     const value = lastSum ? lastSum.sum : data.randomGenerator.nextInt(10, 99);
 
-    switch (type) {
-      case "block":
-        yield* World.resolve(newScheduledHeightData, {
-          from_address: "0x0",
-          future_block_height: data.blockHeight + tick,
-          input_data: JSON.stringify(["attack", playerId, 1]),
-        });
-        break;
+//     // Example 4:
+//     // How to run a custom promise.
+//     const result = yield* World.promise(sum(value, 3));
 
-      case "timestamp":
-        yield* World.resolve(newScheduledTimestampData, {
-          from_address: "0x0",
-          future_ms_timestamp: new Date(data.blockTimestamp + tick),
-          input_data: JSON.stringify(["attack", playerId, 1]),
-        });
+//     // Example 5:
+//     // How to write in the DB.
+//     yield* World.resolve(insertSumIntoExampleTable, {
+//       sum: result,
+//       block_height: data.blockHeight,
+//     });
+//     return;
+//   },
+// );
 
-        break;
-      default:
-        throw new Error("Invalid type");
-    }
-    return;
-  },
-);
+// stm.addStateTransition(
+//   "throw_error",
+//   function* (data) {
+//     throw new Error("This is a test error");
+//   },
+// );
+
+// stm.addStateTransition(
+//   "schedule",
+//   function* (data) {
+//     const { tick, message, type } = data.parsedInput;
+//     const playerId = parseInt(message);
+
+//     switch (type) {
+//       case "block":
+//         yield* World.resolve(newScheduledHeightData, {
+//           from_address: "0x0",
+//           future_block_height: data.blockHeight + tick,
+//           input_data: JSON.stringify(["attack", playerId, 1]),
+//         });
+//         break;
+
+//       case "timestamp":
+//         yield* World.resolve(newScheduledTimestampData, {
+//           from_address: "0x0",
+//           future_ms_timestamp: new Date(data.blockTimestamp + tick),
+//           input_data: JSON.stringify(["attack", playerId, 1]),
+//         });
+
+//         break;
+//       default:
+//         throw new Error("Invalid type");
+//     }
+//     return;
+//   },
+// );
 
 stm.addStateTransition(
   "transfer",

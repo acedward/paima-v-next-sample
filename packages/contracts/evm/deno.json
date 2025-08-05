@@ -1,6 +1,10 @@
 {
     "name": "@example/evm-contracts",
-    "exports": "./mod.ts",
+    "exports": {
+        ".": "./mod.ts",
+        "./build": "./build/mod.ts",
+        "./contractAddressesEvmMain": "./build/contractAddressesEvmMain.ts"
+    },
     "version": "0.3.0",
     "license": "MIT",
     // TODO: how these actually will work will depend on the hardhat v3 viem plugin

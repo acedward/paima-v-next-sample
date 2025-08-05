@@ -1,6 +1,7 @@
 // import deployedEvmAddresses from "@example/evm-contracts/deployments";
 
 import { contractAddressesEvmMain } from "@example/evm-contracts";
+import { readMidnightContract } from "@example/midnight-contracts";
 
 import {
   ConfigBuilder,
@@ -46,6 +47,14 @@ export const localhostConfig = new ConfigBuilder()
         type: ConfigNetworkType.CARDANO,
         nodeUrl: "http://127.0.0.1:10000", // yaci-devkit default URL
         network: "yaci",
+      })
+      .addNetwork({
+        name: "midnight",
+        type: ConfigNetworkType.MIDNIGHT,
+        genesisHash:
+          "0x0000000000000000000000000000000000000000000000000000000000000001",
+        networkId: 0,
+        nodeUrl: "http://127.0.0.1:9944",
       })
   )
   .buildDeployments((builder) =>
@@ -119,6 +128,17 @@ export const localhostConfig = new ConfigBuilder()
           type: ConfigSyncProtocolType.CARDANO_UTXORPC_PARALLEL,
           rpcUrl: "http://127.0.0.1:50051", // dolos utxorpc address
           startSlot: 1,
+        }),
+      )
+      .addParallel(
+        (networks) => networks.midnight,
+        (network, deployments) => ({
+          name: "parallelMidnight",
+          type: ConfigSyncProtocolType.MIDNIGHT_PARALLEL,
+          startBlockHeight: 1,
+          pollingInterval: 1000,
+          indexer: "http://127.0.0.1:8088/api/v1/graphql",
+          indexerWs: "ws://127.0.0.1:8088/api/v1/graphql/ws",
         }),
       )
   )
@@ -197,6 +217,16 @@ export const localhostConfig = new ConfigBuilder()
           ),
           // TODO This is not defined. Should be a error.
           scheduledPrefix: "transfer-erc20-2",
+        }),
+      )
+      .addPrimitive(
+        (syncProtocols) => syncProtocols.parallelMidnight,
+        (network, deployments, syncProtocol) => ({
+          name: "MidnightContractState",
+          type: ConfigPrimitiveType.MidnightContractState,
+          startBlockHeight: 1,
+          contractAddress: readMidnightContract().contractAddress,
+          scheduledPrefix: "midnightContractState",
         }),
       )
   )
