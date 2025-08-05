@@ -15,7 +15,7 @@ if (expectedRuntimeVersion[0] != actualRuntimeVersion[0]
 
 const _descriptor_0 = new __compactRuntime.CompactTypeBytes(32);
 
-const _descriptor_1 = new __compactRuntime.CompactTypeUnsignedInteger(1461501637330902918203684832716283019655932542975n, 20);
+const _descriptor_1 = new __compactRuntime.CompactTypeBytes(64);
 
 const _descriptor_2 = new __compactRuntime.CompactTypeUnsignedInteger(65535n, 2);
 
@@ -65,17 +65,17 @@ class Contract {
                                       'counter.compact line 28 char 1',
                                       'CircuitContext',
                                       contextOrig_0)
-        if (!(typeof(contract_address__0) === 'bigint' && contract_address__0 >= 0 && contract_address__0 <= 1461501637330902918203684832716283019655932542975n))
+        if (!(contract_address__0.buffer instanceof ArrayBuffer && contract_address__0.BYTES_PER_ELEMENT === 1 && contract_address__0.length === 64))
           __compactRuntime.type_error('increment',
                                       'argument 1 (argument 2 as invoked from Typescript)',
                                       'counter.compact line 28 char 1',
-                                      'Uint<0..1461501637330902918203684832716283019655932542975>',
+                                      'Bytes<64>',
                                       contract_address__0)
-        if (!(typeof(token_id__0) === 'bigint' && token_id__0 >= 0 && token_id__0 <= 1461501637330902918203684832716283019655932542975n))
+        if (!(token_id__0.buffer instanceof ArrayBuffer && token_id__0.BYTES_PER_ELEMENT === 1 && token_id__0.length === 64))
           __compactRuntime.type_error('increment',
                                       'argument 2 (argument 3 as invoked from Typescript)',
                                       'counter.compact line 28 char 1',
-                                      'Uint<0..1461501637330902918203684832716283019655932542975>',
+                                      'Bytes<64>',
                                       token_id__0)
         if (!(property_name__0.buffer instanceof ArrayBuffer && property_name__0.BYTES_PER_ELEMENT === 1 && property_name__0.length === 32))
           __compactRuntime.type_error('increment',
@@ -162,7 +162,7 @@ class Contract {
                                value: __compactRuntime.StateValue.newCell({ value: _descriptor_6.toValue(1n),
                                                                             alignment: _descriptor_6.alignment() }).encode() } },
                      { push: { storage: true,
-                               value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(0n),
+                               value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(new Uint8Array(64)),
                                                                             alignment: _descriptor_1.alignment() }).encode() } },
                      { ins: { cached: false, n: 1 } }]);
     Contract._query(context,
@@ -172,7 +172,7 @@ class Contract {
                                value: __compactRuntime.StateValue.newCell({ value: _descriptor_6.toValue(2n),
                                                                             alignment: _descriptor_6.alignment() }).encode() } },
                      { push: { storage: true,
-                               value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(0n),
+                               value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(new Uint8Array(64)),
                                                                             alignment: _descriptor_1.alignment() }).encode() } },
                      { ins: { cached: false, n: 1 } }]);
     Contract._query(context,

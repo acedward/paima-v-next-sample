@@ -19,15 +19,15 @@ import CompactStandardLibrary;
 
 // public state
 export ledger round: Counter;
-export ledger contract_address: Uint<160>;
-export ledger token_id: Uint<160>;
+export ledger contract_address: Bytes<64>;
+export ledger token_id: Bytes<64>;
 export ledger property_name: Bytes<32>;
 export ledger value: Bytes<32>;
 
 // transition function changing public state
 export circuit increment(
-  contract_address_: Uint<160>, 
-  token_id_: Uint<160>, 
+  contract_address_: Bytes<64>, 
+  token_id_: Bytes<64>, 
   property_name_: Bytes<32>,
   value_: Bytes<32>,
 ): [] {

@@ -29,12 +29,10 @@ interface MidnightWallet {
 }
 
 interface ERC721Token {
-  id: number;
-  name: string;
-  owner: string;
+  id: string;
+  owner?: string;
   properties: Record<string, string | number>;
-  createdAt: Date;
-  lastModified: Date;
+  isValid: boolean;
 }
 
 interface Notification {
@@ -187,9 +185,37 @@ async function postToBatcher(
   return result;
 }
 
-// Initial token data - now empty to focus on counter functionality
-const generateInitialTokens = (): ERC721Token[] => {
-  return []; // No initial tokens to focus on Midnight counter demo
+// API functions for fetching NFT data
+const fetchNFTData = async (): Promise<
+  Record<
+    string,
+    { properties: Record<string, string | number>; owner?: string }
+  >
+> => {
+  try {
+    const response = await fetch("http://localhost:9999/api/erc721");
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch NFT data:", error);
+    throw error;
+  }
+};
+
+const convertApiDataToTokens = (
+  apiData: Record<
+    string,
+    { properties: Record<string, string | number>; owner?: string }
+  >,
+): ERC721Token[] => {
+  return Object.entries(apiData).map(([tokenId, data]) => ({
+    id: tokenId,
+    owner: data.owner,
+    properties: data.properties,
+    isValid: !!data.owner, // Token is valid if it has an owner
+  }));
 };
 
 export function WalletDemo() {
@@ -207,14 +233,17 @@ export function WalletDemo() {
   );
   const [isConnectingMidnight, setIsConnectingMidnight] = useState(false);
   const [isIncrementingCounter, setIsIncrementingCounter] = useState(false);
-  const [tokens, setTokens] = useState<ERC721Token[]>(generateInitialTokens());
-  const [selectedToken, setSelectedToken] = useState<number | null>(
-    1,
-  );
+  const [tokens, setTokens] = useState<ERC721Token[]>([]);
+  const [selectedToken, setSelectedToken] = useState<string | null>(null);
   const [tokenName, setTokenName] = useState<string>("");
+  const [isLoadingTokens, setIsLoadingTokens] = useState<boolean>(false);
+  const [tokenIdInput, setTokenIdInput] = useState<string>("");
+  const [createTokenId, setCreateTokenId] = useState<string>(
+    Date.now().toString(),
+  );
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [animatingTokens, setAnimatingTokens] = useState<Set<number>>(
+  const [animatingTokens, setAnimatingTokens] = useState<Set<string>>(
     new Set(),
   );
   const [animatingProperties, setAnimatingProperties] = useState<Set<string>>(
@@ -222,12 +251,16 @@ export function WalletDemo() {
   );
   const [isCreatingToken, setIsCreatingToken] = useState(false);
 
+  // ERC721 contract address - moved here to be accessible to both sections
+  const erc721Address = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+
   // Increment counter form state
   const [incrementForm, setIncrementForm] = useState({
-    contractAddress: 1,
-    tokenId: 2,
-    propertyName: "Level",
-    propertyValue: "1",
+    contractAddress: erc721Address,
+    tokenId: "",
+    propertyName: "Name",
+    propertyValue:
+      RANDOM_TOKEN_NAMES[Math.floor(Math.random() * RANDOM_TOKEN_NAMES.length)],
   });
 
   // Generate random token name
@@ -241,6 +274,47 @@ export function WalletDemo() {
   useEffect(() => {
     generateRandomTokenName();
   }, []);
+
+  // Fetch NFT data function
+  const loadTokens = async () => {
+    setIsLoadingTokens(true);
+    try {
+      const apiData = await fetchNFTData();
+      const convertedTokens = convertApiDataToTokens(apiData);
+      setTokens(convertedTokens);
+    } catch (error) {
+      console.error("Failed to load tokens:", error);
+      showNotification(
+        "error",
+        "Failed to Load NFTs",
+        "Could not fetch NFT data from the API endpoint",
+      );
+    } finally {
+      setIsLoadingTokens(false);
+    }
+  };
+
+  // Initial load and setup interval
+  useEffect(() => {
+    loadTokens(); // Initial load
+
+    const interval = setInterval(() => {
+      loadTokens(); // Refresh every 5 seconds
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update tokenId input when selected token changes
+  useEffect(() => {
+    if (selectedToken) {
+      setTokenIdInput(selectedToken);
+      setIncrementForm((prev) => ({
+        ...prev,
+        tokenId: selectedToken,
+      }));
+    }
+  }, [selectedToken]);
 
   // Create hardhat wallet client when main wallet connects
   useEffect(() => {
@@ -279,20 +353,10 @@ export function WalletDemo() {
     createHardhatWalletClient();
   }, [walletConnected, walletAddress]);
 
-  // Update tokenId in increment form when selected token changes
-  useEffect(() => {
-    if (selectedToken) {
-      setIncrementForm((prev) => ({
-        ...prev,
-        tokenId: selectedToken,
-      }));
-    }
-  }, [selectedToken]);
-
   // Removed property suggestion handler as we no longer add properties
 
   // Handle card selection
-  const handleCardSelect = (tokenId: number) => {
+  const handleCardSelect = (tokenId: string) => {
     setSelectedToken(tokenId);
     // No notification for token selection to avoid spam
   };
@@ -310,7 +374,7 @@ export function WalletDemo() {
       );
 
       // Create a deterministic but unique seed for each token
-      const seed = token.id;
+      const seed = parseInt(token.id) || 0;
 
       // Use the seed to create consistent "random" suggestions for each token
       const shuffled = [...availableSuggestions].sort((a, b) => {
@@ -339,7 +403,7 @@ export function WalletDemo() {
     title: string,
     message: string,
   ) => {
-    const id = Date.now();
+    const id = Date.now() + Math.random() * 1000000; // Add randomness to prevent collisions
     const notification: Notification = { id, type, title, message };
     setNotifications((prev) => [...prev, notification]);
 
@@ -432,15 +496,6 @@ export function WalletDemo() {
   };
 
   const createERC721Token = async () => {
-    if (!tokenName.trim()) {
-      showNotification(
-        "error",
-        "Missing Token Name",
-        "Please enter a token name",
-      );
-      return;
-    }
-
     if (!walletConnected || !walletAddress || !hardhatWalletClient) {
       showNotification(
         "error",
@@ -453,25 +508,29 @@ export function WalletDemo() {
     setIsCreatingToken(true);
 
     try {
-      // Get ERC721 contract address from deployed contracts
-      // const contractAddresses = contractAddressesEvmMain();
-      const erc721Address = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
-      // contractAddresses.chain31337["Erc721DevModule#Erc721Dev"];
-
       if (!erc721Address) {
         throw new Error(
           "ERC721 contract address not found. Make sure contracts are deployed.",
         );
       }
 
-      // Generate a unique token ID (using timestamp + random number)
-      const tokenId = BigInt(Date.now() + Math.floor(Math.random() * 1000));
+      // Validate and use the user-provided token ID
+      const tokenIdStr = createTokenId.trim();
+      if (!tokenIdStr) {
+        throw new Error("Token ID cannot be empty");
+      }
+
+      // Check if it's a valid number
+      if (!/^\d+$/.test(tokenIdStr)) {
+        throw new Error("Token ID must be a positive number");
+      }
+
+      const tokenId = BigInt(tokenIdStr);
 
       console.log("🎨 [CONTRACT] Minting ERC721 token:", {
         contract: erc721Address,
         tokenId: tokenId.toString(),
         to: walletAddress,
-        name: tokenName,
       });
 
       showNotification(
@@ -497,11 +556,9 @@ export function WalletDemo() {
         transport: http(),
       });
 
-      const transaction = await publicClient.waitForTransactionReceipt(
-        {
-          hash: mintTxHash,
-        },
-      );
+      const transaction = await publicClient.waitForTransactionReceipt({
+        hash: mintTxHash,
+      });
       console.log("🎉 [CONTRACT] Transaction receipt:", transaction);
 
       showNotification(
@@ -509,74 +566,61 @@ export function WalletDemo() {
         "NFT Minted on Hardhat",
         `Token minted successfully on Hardhat chain! Tx: ${
           mintTxHash.slice(0, 10)
-        }...`,
+        }... Waiting for API to reflect the new token...`,
       );
 
-      // Also send to batcher as requested
-      const tokenCreationData = [
-        "createToken",
-        tokenName,
-        walletAddress,
-        tokenId.toString(), // Include the actual token ID
-      ];
+      // Poll the API until the new token appears
+      const pollForNewToken = async (attempts = 0, maxAttempts = 30) => {
+        try {
+          const apiData = await fetchNFTData();
+          const tokenExists = Object.keys(apiData).includes(tokenIdStr);
 
-      const jsonArrayString = JSON.stringify(tokenCreationData);
-
-      console.log("🚀 Creating ERC721 token via batcher:", jsonArrayString);
-
-      showNotification(
-        "info",
-        "Sending to Batcher",
-        "Creating signed input and sending to batcher endpoint...",
-      );
-
-      // Send to batcher endpoint using MetaMask wallet
-      // const batcherResult = await postToBatcher(
-      //   jsonArrayString,
-      //   walletAddress,
-      //   signMessage,
-      // );
-
-      // console.log("🎉 Batcher response for token creation:", batcherResult);
-
-      // Create local token for display
-      const newToken: ERC721Token = {
-        id: Date.now(),
-        name: tokenName,
-        owner: walletAddress,
-        properties: {
-          tokenId: tokenId.toString(),
-          contractAddress: erc721Address.slice(0, 10) + "...",
-          transactionHash: mintTxHash.slice(0, 10) + "...",
-          chain: "Hardhat (localhost:8545)",
-          batcherResponse: "Success", // batcherResult?.success ? "Success" : "Pending",
-          createdViaBatcher: "true",
-          onChainMinted: "true",
-          mintedOnHardhat: "true",
-        },
-        createdAt: new Date(),
-        lastModified: new Date(),
+          if (tokenExists) {
+            // Token found in API, update tokens and stop loading
+            const convertedTokens = convertApiDataToTokens(apiData);
+            setTokens(convertedTokens);
+            showNotification(
+              "success",
+              "Token Available",
+              `Token #${tokenIdStr} is now available in the API!`,
+            );
+            setIsCreatingToken(false);
+          } else if (attempts < maxAttempts) {
+            // Token not found yet, try again in 1 second
+            setTimeout(() => {
+              pollForNewToken(attempts + 1, maxAttempts);
+            }, 1000);
+          } else {
+            // Max attempts reached, show warning but still stop loading
+            showNotification(
+              "warning",
+              "Token Created But Not Yet Visible",
+              `Token was minted but may take longer to appear in the API. Try refreshing manually.`,
+            );
+            loadTokens(); // Final attempt to load tokens
+            setIsCreatingToken(false);
+          }
+        } catch (error) {
+          console.error("Error polling for new token:", error);
+          if (attempts < maxAttempts) {
+            // If there's an error, try again
+            setTimeout(() => {
+              pollForNewToken(attempts + 1, maxAttempts);
+            }, 1000);
+          } else {
+            // Max attempts reached, stop loading
+            showNotification(
+              "error",
+              "Failed to Verify Token Creation",
+              "Token may have been created but couldn't verify through API.",
+            );
+            setIsCreatingToken(false);
+          }
+        }
       };
 
-      setTokens((prev) => [...prev, newToken]);
-      setSelectedToken(newToken.id); // Automatically select the newly created token
-
-      // Add animation for new token
-      setAnimatingTokens((prev) => new Set([...prev, newToken.id]));
-      setTimeout(() => {
-        setAnimatingTokens((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(newToken.id);
-          return newSet;
-        });
-      }, 1000); // Remove animation class after 1 second
-
-      generateRandomTokenName(); // Generate new random name for next token
-      showNotification(
-        "success",
-        "ERC721 Token Created",
-        `Token "${newToken.name}" minted on Hardhat chain and sent to batcher successfully!`,
-      );
+      // Start polling for the new token
+      pollForNewToken();
     } catch (error) {
       console.error("Failed to create token:", error);
       showNotification(
@@ -584,7 +628,6 @@ export function WalletDemo() {
         "Token Creation Failed",
         error instanceof Error ? error.message : "Failed to create token",
       );
-    } finally {
       setIsCreatingToken(false);
     }
   };
@@ -608,6 +651,28 @@ export function WalletDemo() {
       return;
     }
 
+    // Check if token exists and is valid
+    const selectedTokenData = tokens.find((token) =>
+      token.id === selectedToken
+    );
+    if (!selectedTokenData) {
+      showNotification(
+        "error",
+        "Token Not Found",
+        "The selected ERC721 token does not exist",
+      );
+      return;
+    }
+
+    if (!selectedTokenData.isValid) {
+      showNotification(
+        "error",
+        "Invalid Token",
+        "The selected token is invalid (no owner found)",
+      );
+      // return;
+    }
+
     if (!incrementForm.propertyName || !incrementForm.propertyValue) {
       showNotification(
         "error",
@@ -618,22 +683,6 @@ export function WalletDemo() {
     }
 
     setIsIncrementingCounter(true);
-
-    // Always add the property to the NFT locally first
-    setTokens((prevTokens) =>
-      prevTokens.map((token) =>
-        token.id === selectedToken
-          ? {
-            ...token,
-            properties: {
-              ...token.properties,
-              [incrementForm.propertyName]: incrementForm.propertyValue,
-            },
-            lastModified: new Date(),
-          }
-          : token
-      )
-    );
 
     // Add animation for the property
     const propertyKey = `${selectedToken}-${incrementForm.propertyName}`;
@@ -688,14 +737,19 @@ export function WalletDemo() {
       showNotification(
         "success",
         "Property Added",
-        `Property "${incrementForm.propertyName}: ${incrementForm.propertyValue}" added to NFT successfully! Transaction: ${result.txId}`,
+        `Property "${incrementForm.propertyName}: ${incrementForm.propertyValue}" added to NFT successfully! Transaction: ${result.txId}. Data will refresh from API.`,
       );
+
+      // Refresh tokens after a delay to get updated data
+      setTimeout(() => {
+        loadTokens();
+      }, 2000);
     } catch (error) {
       console.error("Failed to add property:", error);
       showNotification(
-        "warning",
-        "Property Added Locally",
-        `Property "${incrementForm.propertyName}: ${incrementForm.propertyValue}" was added to your NFT locally, but the blockchain transaction failed: ${
+        "error",
+        "Property Addition Failed",
+        `Failed to add property "${incrementForm.propertyName}: ${incrementForm.propertyValue}" to NFT: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
       );
@@ -773,7 +827,8 @@ export function WalletDemo() {
                     : "❌ Connect MetaMask using the header button"}
                 </div>
 
-                {walletConnected && (
+                {
+                  /* {walletConnected && (
                   <div
                     className="hardhat-status"
                     style={{ marginTop: "8px", fontSize: "12px" }}
@@ -782,33 +837,55 @@ export function WalletDemo() {
                       ? "🔗 Hardhat Chain Connected"
                       : "⏳ Connecting to Hardhat Chain..."}
                   </div>
-                )}
+                )} */
+                }
               </div>
 
               {walletConnected && (
                 <div className="token-creation">
                   <div className="token-input-group">
-                    <input
-                      type="text"
-                      value={tokenName}
-                      onChange={(e) => setTokenName(e.target.value)}
-                      placeholder="Enter ERC721 token name"
-                      className="token-name-input evm-input"
-                    />
-                    <button
-                      type="button"
-                      onClick={generateRandomTokenName}
-                      className="wallet-button evm-button random-name-btn"
-                      title="Generate random name"
-                    >
-                      🎲
-                    </button>
+                    <div className="token-id-creation-group">
+                      <label htmlFor="createTokenId" className="token-id-label">
+                        Token ID:
+                      </label>
+                      <div className="token-id-input-wrapper">
+                        <input
+                          id="createTokenId"
+                          type="text"
+                          value={createTokenId}
+                          onChange={(e) => setCreateTokenId(e.target.value)}
+                          className={`token-name-input evm-input ${
+                            createTokenId.trim() &&
+                              !/^\d+$/.test(createTokenId.trim())
+                              ? "form-input-error"
+                              : ""
+                          }`}
+                          placeholder="Enter token ID"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCreateTokenId(Date.now().toString())}
+                          className="refresh-timestamp-btn"
+                          title="Refresh with current timestamp"
+                        >
+                          🕐
+                        </button>
+                      </div>
+                      {createTokenId.trim() &&
+                        !/^\d+$/.test(createTokenId.trim()) && (
+                        <div className="input-warning">
+                          ⚠️ Token ID must be a positive number
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={createERC721Token}
                       className="wallet-button evm-button"
-                      disabled={!tokenName.trim() || isCreatingToken ||
-                        !walletConnected || !hardhatWalletClient}
+                      disabled={isCreatingToken || !walletConnected ||
+                        !hardhatWalletClient || !createTokenId.trim() ||
+                        !/^\d+$/.test(createTokenId.trim())}
                     >
                       {isCreatingToken
                         ? (
@@ -818,7 +895,7 @@ export function WalletDemo() {
                           </>
                         )
                         : (
-                          "MINT ERC721 Token & Send to Batcher"
+                          "MINT ERC721 Token"
                         )}
                     </button>
                   </div>
@@ -897,15 +974,16 @@ export function WalletDemo() {
                         </label>
                         <input
                           id="contractAddress"
-                          type="number"
+                          type="text"
                           value={incrementForm.contractAddress}
                           onChange={(e) =>
                             setIncrementForm((prev) => ({
                               ...prev,
-                              contractAddress: Number(e.target.value),
+                              contractAddress: e.target.value,
                             }))}
                           className="form-input"
                           placeholder="0x..."
+                          disabled
                         />
                       </div>
 
@@ -913,19 +991,35 @@ export function WalletDemo() {
                         <label htmlFor="tokenId" className="form-label">
                           Token ID:
                         </label>
-                        <input
-                          id="tokenId"
-                          type="number"
-                          value={incrementForm.tokenId}
-                          onChange={(e) =>
-                            setIncrementForm((prev) => ({
-                              ...prev,
-                              tokenId: Number(e.target.value),
-                            }))}
-                          className="form-input"
-                          placeholder="Select an NFT below"
-                          disabled
-                        />
+                        <div className="token-id-input-group">
+                          <input
+                            id="tokenId"
+                            type="text"
+                            value={tokenIdInput}
+                            onChange={(e) => {
+                              setTokenIdInput(e.target.value);
+                              setIncrementForm((prev) => ({
+                                ...prev,
+                                tokenId: e.target.value,
+                              }));
+                            }}
+                            className={`form-input ${
+                              tokenIdInput && !tokens.find((t) =>
+                                  t.id === tokenIdInput
+                                )
+                                ? "form-input-error"
+                                : ""
+                            }`}
+                            placeholder="Enter or select token ID"
+                          />
+                          {tokenIdInput && !tokens.find((t) =>
+                            t.id === tokenIdInput
+                          ) && (
+                            <div className="input-warning">
+                              ⚠️ The ERC721 token does not exist
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       <div className="form-row">
@@ -950,18 +1044,41 @@ export function WalletDemo() {
                         <label htmlFor="propertyValue" className="form-label">
                           Property Value:
                         </label>
-                        <input
-                          id="propertyValue"
-                          type="text"
-                          value={incrementForm.propertyValue}
-                          onChange={(e) =>
-                            setIncrementForm((prev) => ({
-                              ...prev,
-                              propertyValue: e.target.value,
-                            }))}
-                          className="form-input"
-                          placeholder="e.g., 1, Legendary, 100"
-                        />
+                        <div className="property-value-input-group">
+                          <input
+                            id="propertyValue"
+                            type="text"
+                            value={incrementForm.propertyValue}
+                            onChange={(e) =>
+                              setIncrementForm((prev) => ({
+                                ...prev,
+                                propertyValue: e.target.value,
+                              }))}
+                            className="form-input"
+                            placeholder="e.g., 1, Legendary, 100"
+                          />
+                          {incrementForm.propertyName.toLowerCase() ===
+                              "name" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const randomName = RANDOM_TOKEN_NAMES[
+                                  Math.floor(
+                                    Math.random() * RANDOM_TOKEN_NAMES.length,
+                                  )
+                                ];
+                                setIncrementForm((prev) => ({
+                                  ...prev,
+                                  propertyValue: randomName,
+                                }));
+                              }}
+                              className="wallet-button midnight-button random-name-btn"
+                              title="Generate random name"
+                            >
+                              🎲
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1012,14 +1129,37 @@ export function WalletDemo() {
           </div>
 
           {/* Tokens Cards Grid */}
-          {tokens.length > 0 && (
-            <div className="tokens-cards-container">
-              <h3 className="cards-title">ERC721 Tokens & Properties</h3>
+          <div className="tokens-cards-container">
+            <div className="cards-header">
+              <h3 className="cards-title">
+                ERC721 Tokens & Properties
+                {isLoadingTokens && (
+                  <span className="loading-indicator">(Loading...)</span>
+                )}
+              </h3>
+              <button
+                type="button"
+                onClick={loadTokens}
+                className="refresh-button"
+                disabled={isLoadingTokens}
+                title="Refresh token list"
+              >
+                {isLoadingTokens ? <span className="loader-small"></span> : (
+                  "🔄"
+                )}
+              </button>
+            </div>
+
+            {tokens.length === 0 && !isLoadingTokens && (
+              <div className="no-tokens-message">
+                <p>No tokens found. Create an ERC721 token to get started!</p>
+              </div>
+            )}
+
+            {tokens.length > 0 && (
               <div className="tokens-cards-grid">
                 {tokens
-                  .sort((a, b) =>
-                    b.lastModified.getTime() - a.lastModified.getTime()
-                  )
+                  .sort((a, b) => parseInt(b.id) - parseInt(a.id)) // Sort by token ID descending
                   .map((token) => (
                     <div
                       key={token.id}
@@ -1029,7 +1169,7 @@ export function WalletDemo() {
                         animatingTokens.has(token.id)
                           ? "new-token-animation"
                           : ""
-                      }`}
+                      } ${!token.isValid ? "invalid-token" : ""}`}
                       onClick={() => handleCardSelect(token.id)}
                     >
                       <div className="card-header">
@@ -1038,23 +1178,33 @@ export function WalletDemo() {
                             <span className="selected-icon">✓</span>
                           )}
                         </div>
-                        <h4 className="card-token-name">{token.name}</h4>
+                        <h4 className="card-token-name">
+                          {token.properties.Name || `Token #${token.id}`}
+                          {!token.isValid && (
+                            <span className="invalid-badge">Invalid Token</span>
+                          )}
+                        </h4>
                       </div>
 
                       <div className="card-body">
                         <div className="card-owner">
                           <span className="owner-label">Owner:</span>
                           <span className="owner-address">
-                            {token.owner.slice(0, 8)}...{token.owner.slice(-6)}
+                            {token.owner
+                              ? `${token.owner.slice(0, 8)}...${
+                                token.owner.slice(-6)
+                              }`
+                              : "No owner"}
                           </span>
                         </div>
 
-                        <div className="card-created">
-                          <span className="created-label">Created:</span>
-                          <span className="created-time">
-                            {token.createdAt.toLocaleTimeString()}
-                          </span>
-                        </div>
+                        {!token.isValid && (
+                          <div className="card-warning">
+                            <span className="warning-text">
+                              ⚠️ Invalid token - no owner found
+                            </span>
+                          </div>
+                        )}
 
                         <div className="card-properties">
                           <div className="properties-header">Properties:</div>
@@ -1065,24 +1215,25 @@ export function WalletDemo() {
                                   No properties yet - try these suggestions:
                                 </div>
                                 <div className="card-property-suggestions">
-                                  {(tokenSuggestions[token.id] || []).map((
-                                    suggestion: PropertySuggestion,
-                                  ) => (
-                                    <button
-                                      key={`${token.id}-${suggestion.key}`}
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation(); // Prevent card selection
-                                        handleCardSelect(token.id); // Select the card first
-                                        // Note: Property suggestions disabled for counter demo
-                                      }}
-                                      className="card-suggestion-tag"
-                                      title={suggestion.description}
-                                      disabled
-                                    >
-                                      {suggestion.key}
-                                    </button>
-                                  ))}
+                                  {(tokenSuggestions[token.id] || [])
+                                    .map((
+                                      suggestion: PropertySuggestion,
+                                    ) => (
+                                      <button
+                                        key={`${token.id}-${suggestion.key}`}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation(); // Prevent card selection
+                                          handleCardSelect(token.id); // Select the card first
+                                          // Note: Property suggestions disabled for counter demo
+                                        }}
+                                        className="card-suggestion-tag"
+                                        title={suggestion.description}
+                                        disabled
+                                      >
+                                        {suggestion.key}
+                                      </button>
+                                    ))}
                                 </div>
                               </div>
                             )
@@ -1114,8 +1265,8 @@ export function WalletDemo() {
                     </div>
                   ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
@@ -1426,9 +1577,56 @@ export function WalletDemo() {
 
           .token-input-group, .property-input-group {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             align-items: center;
             flex-wrap: wrap;
+            flex-direction: column;
+          }
+
+          .token-id-creation-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+          }
+
+          .token-id-label {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 0.9rem;
+          }
+
+          .token-id-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+          }
+
+          .token-id-input-wrapper .token-name-input {
+            flex: 1;
+          }
+
+          .refresh-timestamp-btn {
+            background: linear-gradient(45deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            min-height: 44px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+
+          .refresh-timestamp-btn:hover {
+            background: linear-gradient(45deg, #059669, #047857);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
           }
 
           .token-name-input, .property-input {
@@ -1640,15 +1838,62 @@ export function WalletDemo() {
             border: 1px solid rgba(30, 58, 138, 0.2);
           }
 
+          .cards-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(30, 58, 138, 0.1);
+            border-radius: 8px;
+          }
+
           .cards-title {
             font-size: 1.4rem;
             font-weight: 600;
             color: #1e3a8a;
-            margin-bottom: 20px;
+            margin: 0;
+            flex: 1;
             text-align: center;
-            padding: 15px;
-            background: rgba(30, 58, 138, 0.1);
+          }
+
+          .refresh-button {
+            background: linear-gradient(45deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
             border-radius: 8px;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            min-height: 44px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+
+          .refresh-button:hover:not(:disabled) {
+            background: linear-gradient(45deg, #2563eb, #1d4ed8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          }
+
+          .refresh-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+
+          .loader-small {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
           }
 
           .tokens-cards-grid {
@@ -1912,6 +2157,80 @@ export function WalletDemo() {
             animation: newPropertyPulse 0.8s ease-out;
           }
 
+          .token-id-input-group,
+          .property-value-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+          }
+
+          .property-value-input-group {
+            flex-direction: row;
+            align-items: center;
+          }
+
+          .property-value-input-group .form-input {
+            flex: 1;
+            margin-right: 10px;
+          }
+
+          .form-input-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+          }
+
+          .input-warning {
+            color: #f59e0b;
+            font-size: 0.8rem;
+            font-weight: 500;
+          }
+
+          .loading-indicator {
+            color: #3b82f6;
+            font-size: 0.9rem;
+            font-weight: 500;
+          }
+
+          .no-tokens-message {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 10px;
+            border: 2px dashed #ddd;
+            color: #666;
+            font-style: italic;
+          }
+
+          .invalid-token {
+            border-color: #ef4444 !important;
+            background: rgba(239, 68, 68, 0.05) !important;
+          }
+
+          .invalid-badge {
+            background: #ef4444;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+            font-weight: 500;
+          }
+
+          .card-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 10px;
+          }
+
+          .warning-text {
+            color: #f59e0b;
+            font-size: 0.8rem;
+            font-weight: 500;
+          }
+
           @media (max-width: 768px) {
             .wallet-demo-notifications {
               top: 5px;
@@ -1932,6 +2251,11 @@ export function WalletDemo() {
             .token-input-group, .property-input-group {
               flex-direction: column;
               align-items: stretch;
+            }
+
+            .token-id-input-wrapper {
+              flex-direction: row;
+              gap: 10px;
             }
             
             .wallet-demo-title {
@@ -1963,6 +2287,16 @@ export function WalletDemo() {
             .card-suggestion-tag {
               font-size: 0.8rem;
               padding: 5px 10px;
+            }
+
+            .cards-header {
+              flex-direction: column;
+              gap: 15px;
+              text-align: center;
+            }
+
+            .cards-title {
+              margin-bottom: 0;
             }
           }
 

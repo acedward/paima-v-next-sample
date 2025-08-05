@@ -5,8 +5,8 @@ export type Witnesses<T> = {
 
 export type ImpureCircuits<T> = {
   increment(context: __compactRuntime.CircuitContext<T>,
-            contract_address__0: bigint,
-            token_id__0: bigint,
+            contract_address__0: Uint8Array,
+            token_id__0: Uint8Array,
             property_name__0: Uint8Array,
             value__0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
 }
@@ -16,16 +16,16 @@ export type PureCircuits = {
 
 export type Circuits<T> = {
   increment(context: __compactRuntime.CircuitContext<T>,
-            contract_address__0: bigint,
-            token_id__0: bigint,
+            contract_address__0: Uint8Array,
+            token_id__0: Uint8Array,
             property_name__0: Uint8Array,
             value__0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
 }
 
 export type Ledger = {
   readonly round: bigint;
-  readonly contract_address: bigint;
-  readonly token_id: bigint;
+  readonly contract_address: Uint8Array;
+  readonly token_id: Uint8Array;
   readonly property_name: Uint8Array;
   readonly value: Uint8Array;
 }

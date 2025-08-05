@@ -536,22 +536,22 @@ export function useTableData() {
       // Setup staggered refresh intervals to distribute server load
       // Refresh primitive data immediately, then every 5 seconds
       primitiveRefreshInterval = setInterval(() => {
-        refreshPrimitiveData();
+        // refreshPrimitiveData();
       }, 5000);
 
       // Refresh static table data after 1.5 seconds, then every 5 seconds
       setTimeout(() => {
-        refreshStaticTableData();
+        // refreshStaticTableData();
         staticTableRefreshInterval = setInterval(() => {
-          refreshStaticTableData();
+          // refreshStaticTableData();
         }, 5000);
       }, 1500);
 
       // Refresh scheduled data after 3 seconds, then every 5 seconds
       setTimeout(() => {
-        refreshScheduledData();
+        // refreshScheduledData();
         scheduledDataRefreshInterval = setInterval(() => {
-          refreshScheduledData();
+          // refreshScheduledData();
         }, 5000);
       }, 3000);
     };

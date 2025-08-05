@@ -195,15 +195,15 @@ const increment = async (
   counterContract: DeployedCounterContract,
 ): Promise<FinalizedTxData> => {
   console.log("Incrementing...");
+  const toEncodedString = (str: string, length = 32) =>
+    Uint8Array.from(
+      str.padEnd(length, " ").split("").map((c) => c.charCodeAt(0)),
+    );
   const finalizedTxData = await counterContract.callTx.increment(
-    BigInt(1),
-    BigInt(2),
-    Uint8Array.from(
-      "test A".padEnd(32, " ").split("").map((c) => c.charCodeAt(0)),
-    ),
-    Uint8Array.from(
-      "test B".padEnd(32, " ").split("").map((c) => c.charCodeAt(0)),
-    ),
+    toEncodedString("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", 64),
+    toEncodedString("1754401682327", 64),
+    toEncodedString("test A", 32),
+    toEncodedString("test B", 32),
   );
   console.log(
     `Transaction ${finalizedTxData.public.txId} added in block ${finalizedTxData.public.blockHeight}`,

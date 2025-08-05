@@ -182,8 +182,8 @@ const joinContract = async (
 
 const increment = async (
   counterContract: DeployedCounterContract,
-  contractAddress: bigint,
-  tokenId: bigint,
+  contractAddress: string,
+  tokenId: string,
   propertyName: string,
   propertyValue: string,
 ): Promise<FinalizedTxData> => {
@@ -195,15 +195,15 @@ const increment = async (
   console.log(`   Property Name: ${propertyName}`);
   console.log(`   Property Value: ${propertyValue}`);
 
+  const toEncodedString = (str: string, length = 32) =>
+    Uint8Array.from(
+      str.padEnd(length, " ").split("").map((c) => c.charCodeAt(0)),
+    );
   const finalizedTxData = await counterContract.callTx.increment(
-    contractAddress,
-    tokenId,
-    Uint8Array.from(
-      propertyName.padEnd(32, " ").split("").map((c) => c.charCodeAt(0)),
-    ),
-    Uint8Array.from(
-      propertyValue.padEnd(32, " ").split("").map((c) => c.charCodeAt(0)),
-    ),
+    toEncodedString(contractAddress, 64),
+    toEncodedString(tokenId, 64),
+    toEncodedString(propertyName, 32),
+    toEncodedString(propertyValue, 32),
   );
   console.log(
     `Transaction ${finalizedTxData.public.txId} added in block ${finalizedTxData.public.blockHeight}`,
@@ -430,8 +430,8 @@ const fetchCurrentCounterState = async (
 };
 
 const incrementCounterValue = async (
-  contractAddress: number,
-  tokenId: number,
+  contractAddress: string,
+  tokenId: string,
   propertyName: string,
   propertyValue: string,
   counterContract?: DeployedCounterContract,
@@ -445,8 +445,8 @@ const incrementCounterValue = async (
   console.log("🔢 Incrementing counter...");
   const result = await increment(
     actualContract,
-    BigInt(contractAddress),
-    BigInt(tokenId),
+    contractAddress,
+    tokenId,
     propertyName || "",
     propertyValue || "",
   );

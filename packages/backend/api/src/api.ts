@@ -7,6 +7,7 @@ import {
 } from "@example/database";
 import type { Pool } from "pg";
 import type { StartConfigApiRouter } from "@paimaexample/runtime";
+import { storage } from "@example/state-transition";
 
 // Defintion of API Inputs and Outputs.
 // These defintion build the OpenAPI documentation.
@@ -34,28 +35,7 @@ export const apiRouter: StartConfigApiRouter = async function (
 ): Promise<void> {
   server.get<{
     Params: ParamsType;
-  }>("/api/my-game-state", {
-    schema: {
-      tags: ["user"],
-      params: ParamsSchema,
-      response: {
-        200: ResponseSchema,
-      },
-    },
-  }, async (request) => {
-    const blockHeight = request.params.blockHeight;
-    if (blockHeight) {
-      return await runPreparedQuery(
-        getStateMachineInputByBlockHeight.run({
-          block_height: blockHeight,
-        }, dbConn),
-        "getStateMachineInputByBlockHeight",
-      );
-    } else {
-      return await runPreparedQuery(
-        getStateMachineInput.run(undefined, dbConn),
-        "getStateMachineInput",
-      );
-    }
+  }>("/api/erc721", async (request) => {
+    return storage;
   });
 };

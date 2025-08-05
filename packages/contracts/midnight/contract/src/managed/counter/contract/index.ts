@@ -33,10 +33,7 @@ if (
 
 const _descriptor_0 = new __compactRuntime.CompactTypeBytes(32);
 
-const _descriptor_1 = new __compactRuntime.CompactTypeUnsignedInteger(
-  1461501637330902918203684832716283019655932542975n,
-  20,
-);
+const _descriptor_1 = new __compactRuntime.CompactTypeBytes(64);
 
 const _descriptor_2 = new __compactRuntime.CompactTypeUnsignedInteger(
   65535n,
@@ -109,28 +106,27 @@ class Contract {
           );
         }
         if (
-          !(typeof contract_address__0 === "bigint" &&
-            contract_address__0 >= 0 &&
-            contract_address__0 <=
-              1461501637330902918203684832716283019655932542975n)
+          !(contract_address__0.buffer instanceof ArrayBuffer &&
+            contract_address__0.BYTES_PER_ELEMENT === 1 &&
+            contract_address__0.length === 64)
         ) {
           __compactRuntime.type_error(
             "increment",
             "argument 1 (argument 2 as invoked from Typescript)",
             "counter.compact line 28 char 1",
-            "Uint<0..1461501637330902918203684832716283019655932542975>",
+            "Bytes<64>",
             contract_address__0,
           );
         }
         if (
-          !(typeof token_id__0 === "bigint" && token_id__0 >= 0 &&
-            token_id__0 <= 1461501637330902918203684832716283019655932542975n)
+          !(token_id__0.buffer instanceof ArrayBuffer &&
+            token_id__0.BYTES_PER_ELEMENT === 1 && token_id__0.length === 64)
         ) {
           __compactRuntime.type_error(
             "increment",
             "argument 2 (argument 3 as invoked from Typescript)",
             "counter.compact line 28 char 1",
-            "Uint<0..1461501637330902918203684832716283019655932542975>",
+            "Bytes<64>",
             token_id__0,
           );
         }
@@ -288,7 +284,7 @@ class Contract {
         push: {
           storage: true,
           value: __compactRuntime.StateValue.newCell({
-            value: _descriptor_1.toValue(0n),
+            value: _descriptor_1.toValue(new Uint8Array(64)),
             alignment: _descriptor_1.alignment(),
           }).encode(),
         },
@@ -309,7 +305,7 @@ class Contract {
         push: {
           storage: true,
           value: __compactRuntime.StateValue.newCell({
-            value: _descriptor_1.toValue(0n),
+            value: _descriptor_1.toValue(new Uint8Array(64)),
             alignment: _descriptor_1.alignment(),
           }).encode(),
         },

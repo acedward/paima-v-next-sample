@@ -23,115 +23,73 @@ async function sum(a: number, b: number) {
   return a + b;
 }
 
-const datax: {
-  contractAddress: string;
-  tokenId: string;
-  propertyName: string;
-  value: string;
-  blockHeight: number;
-}[] = [];
+export const storage: Record<string, {
+  properties: Record<string, string>;
+  owner: string;
+}> = {};
+
+function decodeString(data: Record<string, number>, length: number) {
+  let str = "";
+  for (let i = 0; i < length; i++) {
+    str += String.fromCharCode(data[`${i}`]);
+  }
+  return str.trim();
+}
 
 stm.addStateTransition(
   "midnightContractState",
   function* (data) {
+    const round = data.parsedInput.payload.content[0].content.value[0]["0"];
+    const contract_address = decodeString(
+      data.parsedInput.payload.content[1].content.value[0],
+      64,
+    );
+    const token_id = decodeString(
+      data.parsedInput.payload.content[2].content.value[0],
+      64,
+    );
+    const property_name = decodeString(
+      data.parsedInput.payload.content[3].content.value[0],
+      32,
+    );
+    const value = decodeString(
+      data.parsedInput.payload.content[4].content.value[0],
+      32,
+    );
+    console.log(JSON.stringify(data.parsedInput.payload, null, 2));
     console.log(
       "🎉 [CONTRACT] Transaction receipt:",
-      data.parsedInput.payload.content[0].content,
-      data.parsedInput.payload.content[1].content,
-      data.parsedInput.payload.content[2].content,
-      data.parsedInput.payload.content[3].content,
-      data.parsedInput.payload.content[4].content,
+      {
+        round,
+        contract_address,
+        token_id,
+        property_name,
+        value,
+      },
     );
-    // datax.push({
-    //   contractAddress: data.parsedInput.payload.content.value[0],
-    //   tokenId: data.parsedInput.payload.map((x) => x.value[1]),
-    //   propertyName: data.parsedInput.payload.map((x) => x.value[2]),
-    //   value: data.parsedInput.payload.map((x) => x.value[3]),
-    //   blockHeight: data.blockHeight,
-    // });
+    if (token_id.charCodeAt(0) === 0) {
+      // Skip null token_id
+      return;
+    }
+    if (!storage[token_id]) {
+      storage[token_id] = { properties: {}, owner: "" };
+    }
+    storage[token_id].properties[property_name] = value;
   },
 );
 
-// stm.addStateTransition(
-//   "attack",
-//   function* (data) {
-//     // Example 1:
-//     // How to write in the DB.
-//     yield* World.resolve(insertStateMachineInput, {
-//       inputs:
-//         `attack playerId: ${data.parsedInput.playerId} with moveId: ${data.parsedInput.moveId}`,
-//       block_height: data.blockHeight,
-//     });
-
-//     // Example 2:
-//     // How to read from the DB.
-//     const [lastSum] = yield* World.resolve(
-//       getLastSumFromExampleTable,
-//       undefined,
-//     );
-//     // Example 3:
-//     // How to use the random generator.
-//     const value = lastSum ? lastSum.sum : data.randomGenerator.nextInt(10, 99);
-
-//     // Example 4:
-//     // How to run a custom promise.
-//     const result = yield* World.promise(sum(value, 3));
-
-//     // Example 5:
-//     // How to write in the DB.
-//     yield* World.resolve(insertSumIntoExampleTable, {
-//       sum: result,
-//       block_height: data.blockHeight,
-//     });
-//     return;
-//   },
-// );
-
-// stm.addStateTransition(
-//   "throw_error",
-//   function* (data) {
-//     throw new Error("This is a test error");
-//   },
-// );
-
-// stm.addStateTransition(
-//   "schedule",
-//   function* (data) {
-//     const { tick, message, type } = data.parsedInput;
-//     const playerId = parseInt(message);
-
-//     switch (type) {
-//       case "block":
-//         yield* World.resolve(newScheduledHeightData, {
-//           from_address: "0x0",
-//           future_block_height: data.blockHeight + tick,
-//           input_data: JSON.stringify(["attack", playerId, 1]),
-//         });
-//         break;
-
-//       case "timestamp":
-//         yield* World.resolve(newScheduledTimestampData, {
-//           from_address: "0x0",
-//           future_ms_timestamp: new Date(data.blockTimestamp + tick),
-//           input_data: JSON.stringify(["attack", playerId, 1]),
-//         });
-
-//         break;
-//       default:
-//         throw new Error("Invalid type");
-//     }
-//     return;
-//   },
-// );
-
 stm.addStateTransition(
-  "transfer",
+  "transfer-assets",
   function* (data) {
-    const { to, from, value } = data.parsedInput.payload;
-    yield* World.resolve(insertStateMachineInput, {
-      inputs: `transfer ${value} from ${from} to ${to}`,
-      block_height: data.blockHeight,
-    });
+    const { to, tokenId } = data.parsedInput.payload;
+    if (!storage[tokenId]) {
+      storage[tokenId] = { properties: {}, owner: "" };
+    }
+    storage[tokenId].owner = to;
+    // yield* World.resolve(insertStateMachineInput, {
+    //   inputs: `transfer ${value} from ${from} to ${to}`,
+    //   block_height: data.blockHeight,
+    // });
     return;
   },
 );
