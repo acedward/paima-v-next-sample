@@ -7,10 +7,9 @@ import { startCardano } from "./start-cardano.ts";
 import { startMidnight } from "./start-midnight.ts";
 
 const config = Value.Parse(OrchestratorConfig, {
-  // logs: "stdout",
   processes: {
-    // [ComponentNames.TMUX]: true,
-    // [ComponentNames.TUI]: true,
+    [ComponentNames.TMUX]: true,
+    [ComponentNames.TUI]: true,
 
     // Launch Dev DB & Collector
     [ComponentNames.PAIMA_DB]: true,
@@ -37,5 +36,12 @@ const config = Value.Parse(OrchestratorConfig, {
     chainName: "hardhat",
   },
 });
+
+if (Deno.env.get("PAIMA_STDOUT")) {
+  config.logs = "stdout";
+  config.processes[ComponentNames.TMUX] = false;
+  config.processes[ComponentNames.TUI] = false;
+  config.processes[ComponentNames.COLLECTOR] = false;
+}
 
 await start(config);
