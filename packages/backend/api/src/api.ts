@@ -1,13 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { type Static, Type } from "@sinclair/typebox";
 import { runPreparedQuery } from "@paimaexample/db";
-import {
-  getStateMachineInput,
-  getStateMachineInputByBlockHeight,
-} from "@example/database";
+import { getEvmMidnight } from "@example/database";
 import type { Pool } from "pg";
 import type { StartConfigApiRouter } from "@paimaexample/runtime";
-import { storage } from "@example/state-transition";
 
 // Defintion of API Inputs and Outputs.
 // These defintion build the OpenAPI documentation.
@@ -36,6 +32,9 @@ export const apiRouter: StartConfigApiRouter = async function (
   server.get<{
     Params: ParamsType;
   }>("/api/erc721", async (request) => {
-    return storage;
+    return await runPreparedQuery(
+      getEvmMidnight.run(undefined, dbConn),
+      "/api/erc721",
+    );
   });
 };

@@ -186,12 +186,15 @@ async function postToBatcher(
 }
 
 // API functions for fetching NFT data
-const fetchNFTData = async (): Promise<
-  Record<
-    string,
-    { properties: Record<string, string | number>; owner?: string }
-  >
-> => {
+// response example: [{"token_id":"111","owner":"","block_height":1395,"property_name":"Name","value":"Starlight Bridge Token","property_block_height":1395}]
+const fetchNFTData = async (): Promise<{
+  token_id: string;
+  owner: string;
+  block_height: number;
+  property_name: string;
+  value: string;
+  property_block_height: number;
+}[]> => {
   try {
     const response = await fetch("http://localhost:9999/api/erc721");
     if (!response.ok) {
@@ -205,15 +208,21 @@ const fetchNFTData = async (): Promise<
 };
 
 const convertApiDataToTokens = (
-  apiData: Record<
-    string,
-    { properties: Record<string, string | number>; owner?: string }
-  >,
+  apiData: {
+    token_id: string;
+    owner: string;
+    block_height: number;
+    property_name: string;
+    value: string;
+    property_block_height: number;
+  }[],
 ): ERC721Token[] => {
-  return Object.entries(apiData).map(([tokenId, data]) => ({
-    id: tokenId,
+  return apiData.map((data) => ({
+    id: data.token_id,
     owner: data.owner,
-    properties: data.properties,
+    properties: {
+      [data.property_name]: data.value,
+    },
     isValid: !!data.owner, // Token is valid if it has an owner
   }));
 };
@@ -573,7 +582,9 @@ export function WalletDemo() {
       const pollForNewToken = async (attempts = 0, maxAttempts = 30) => {
         try {
           const apiData = await fetchNFTData();
-          const tokenExists = Object.keys(apiData).includes(tokenIdStr);
+          const tokenExists = apiData.some((token) =>
+            token.token_id === tokenIdStr
+          );
 
           if (tokenExists) {
             // Token found in API, update tokens and stop loading
@@ -642,36 +653,36 @@ export function WalletDemo() {
       return;
     }
 
-    if (!selectedToken) {
-      showNotification(
-        "error",
-        "No NFT Selected",
-        "Please select an NFT to add the property to",
-      );
-      return;
-    }
+    // if (!selectedToken) {
+    //   showNotification(
+    //     "error",
+    //     "No NFT Selected",
+    //     "Please select an NFT to add the property to",
+    //   );
+    //   return;
+    // }
 
     // Check if token exists and is valid
     const selectedTokenData = tokens.find((token) =>
       token.id === selectedToken
     );
-    if (!selectedTokenData) {
-      showNotification(
-        "error",
-        "Token Not Found",
-        "The selected ERC721 token does not exist",
-      );
-      return;
-    }
+    // if (!selectedTokenData) {
+    //   showNotification(
+    //     "error",
+    //     "Token Not Found",
+    //     "The selected ERC721 token does not exist",
+    //   );
+    //   return;
+    // }
 
-    if (!selectedTokenData.isValid) {
-      showNotification(
-        "error",
-        "Invalid Token",
-        "The selected token is invalid (no owner found)",
-      );
-      // return;
-    }
+    // if (!selectedTokenData.isValid) {
+    //   showNotification(
+    //     "error",
+    //     "Invalid Token",
+    //     "The selected token is invalid (no owner found)",
+    //   );
+    //   // return;
+    // }
 
     if (!incrementForm.propertyName || !incrementForm.propertyValue) {
       showNotification(
@@ -1088,7 +1099,7 @@ export function WalletDemo() {
                       type="button"
                       onClick={incrementCounter}
                       className="wallet-button midnight-button increment-button"
-                      disabled={isIncrementingCounter || !selectedToken ||
+                      disabled={isIncrementingCounter ||
                         !incrementForm.propertyName ||
                         !incrementForm.propertyValue}
                     >

@@ -4,11 +4,12 @@
     "license": "MIT",
     "exports": "./src/mod.ts",
     "imports": {
-        "@paimaexample/runtime": "jsr:@paimaexample/runtime@^0.3.16",
-        "@pgtyped/runtime": "npm:@pgtyped/runtime@2.4.2"
+        "@paimaexample/runtime": "jsr:@paimaexample/runtime@0.3.17",
+        "@pgtyped/runtime": "npm:@pgtyped/runtime@2.4.2",
+        "@paimaexample/db": "jsr:@paimaexample/db@0.3.17"
     },
     "tasks": {
-        "pgtyped:my-sql": "deno task -f @paimaexample/db db:wait && pgtyped -c ./pgtypedconfig.json",
-        "pgtyped:update": "MIGRATIONS=\"`pwd`/src/migrations/\" concurrently --raw --kill-others \"deno task -f @paimaexample/db db:up\" \"deno task -f @paimaexample/db pgtyped:internal && deno task pgtyped:my-sql\""
+        "_pgtyped:my-sql": "deno run -A jsr:@paimaexample/db@0.3.17/db-wait && pgtyped -c ./pgtypedconfig.json",
+        "pgtyped:update": "MIGRATIONS=\"`pwd`/src/migrations/\" concurrently --raw --kill-others \"deno run -A jsr:@paimaexample/db@0.3.17/db-up\" \"deno task _pgtyped:my-sql\""
     }
 }

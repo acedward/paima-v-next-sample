@@ -14,7 +14,7 @@ export const migrationRouter: StartConfigMigrationRouter = async function (
 ): Promise<string | undefined> {
   switch (blockHeight) {
     case 1:
-      return await readFile(`${__dirname}/migrations/1.sql`, "utf-8");
+      return await readFile(`${__dirname}/migrations/database.sql`, "utf-8");
   }
   return undefined;
 };

@@ -379,21 +379,21 @@ export function useTableData() {
   // Refresh static table data
   const refreshStaticTableData = useCallback(async () => {
     // Only refresh if initial load is complete
-    if (!isInitialLoadComplete.current) {
-      return;
-    }
+    // if (!isInitialLoadComplete.current) {
+    //   return;
+    // }
 
-    try {
-      const schema = staticTableSchemasRef.current["user_state_machine"];
-      const data = await fetchTableData("user_state_machine", schema);
-      // Only update if we got valid data
-      if (data !== null) {
-        setStaticTableData({ "user_state_machine": data });
-      }
-    } catch (error) {
-      console.error("Error refreshing static table data:", error);
-      // Don't clear data on error, keep existing data
-    }
+    // try {
+    //   const schema = staticTableSchemasRef.current["user_state_machine"];
+    //   const data = await fetchTableData("user_state_machine", schema);
+    //   // Only update if we got valid data
+    //   if (data !== null) {
+    //     setStaticTableData({ "user_state_machine": data });
+    //   }
+    // } catch (error) {
+    //   console.error("Error refreshing static table data:", error);
+    //   // Don't clear data on error, keep existing data
+    // }
   }, [fetchTableData]);
 
   // Refresh scheduled data
@@ -486,17 +486,17 @@ export function useTableData() {
 
     try {
       // Fetch schema first
-      const schema = await fetchTableSchema("user_state_machine");
-      if (schema) {
-        setStaticTableSchemas({ "user_state_machine": schema });
-      }
+      // const schema = await fetchTableSchema("user_state_machine");
+      // if (schema) {
+      // setStaticTableSchemas({ "user_state_machine": schema });
+      // }
 
       // Then fetch data
-      const data = await fetchTableData(
-        "user_state_machine",
-        schema || undefined,
-      );
-      setStaticTableData({ "user_state_machine": data });
+      // const data = await fetchTableData(
+      // "user_state_machine",
+      // schema || undefined,
+      // );
+      // setStaticTableData({ "user_state_machine": data });
       console.log("✅ State machine tables initialized");
     } catch (error) {
       console.error("Error initializing state machine tables:", error);

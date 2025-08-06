@@ -2,31 +2,15 @@ import { PaimaSTM } from "@paimaexample/sm";
 import { grammar } from "@example/data-types";
 import type { BaseStfInput, BaseStfOutput } from "@paimaexample/sm";
 import {
-  getLastSumFromExampleTable,
-  insertStateMachineInput,
-  insertSumIntoExampleTable,
+  getEvmMidnightByTokenId,
+  insertEvmMidnight,
+  insertEvmMidnightProperty,
 } from "@example/database";
 import type { StartConfigGameStateTransitions } from "@paimaexample/runtime";
-import {
-  newScheduledHeightData,
-  newScheduledTimestampData,
-} from "@paimaexample/db";
 import { type SyncStateUpdateStream, World } from "@paimaexample/coroutine";
-// import { createScheduledData } from "@paimaexample/db";
+import { contractAddressesEvmMain } from "@example/evm-contracts";
 
-type MyEvents = {}; // TODO: replace
-const stm = new PaimaSTM<typeof grammar, MyEvents>(grammar);
-
-// Example promise.
-async function sum(a: number, b: number) {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return a + b;
-}
-
-export const storage: Record<string, {
-  properties: Record<string, string>;
-  owner: string;
-}> = {};
+const stm = new PaimaSTM<typeof grammar, any>(grammar);
 
 function decodeString(data: Record<string, number>, length: number) {
   let str = "";
@@ -56,7 +40,6 @@ stm.addStateTransition(
       data.parsedInput.payload.content[4].content.value[0],
       32,
     );
-    console.log(JSON.stringify(data.parsedInput.payload, null, 2));
     console.log(
       "🎉 [CONTRACT] Transaction receipt:",
       {
@@ -71,25 +54,67 @@ stm.addStateTransition(
       // Skip null token_id
       return;
     }
-    if (!storage[token_id]) {
-      storage[token_id] = { properties: {}, owner: "" };
+
+    const [evmMidnight] = yield* World.resolve(getEvmMidnightByTokenId, {
+      contract_address,
+      token_id,
+    });
+
+    if (!evmMidnight) {
+      console.log("🎉 [TRANSFER-ASSETS] Inserting midnight with no owner");
+      yield* World.resolve(insertEvmMidnight, {
+        contract_address,
+        token_id,
+        owner: "",
+        block_height: data.blockHeight,
+      });
     }
-    storage[token_id].properties[property_name] = value;
+
+    console.log("🎉 [TRANSFER-ASSETS] Inserting midnight property");
+    yield* World.resolve(insertEvmMidnightProperty, {
+      contract_address,
+      token_id,
+      property_name,
+      value,
+      block_height: data.blockHeight,
+    });
   },
 );
 
 stm.addStateTransition(
   "transfer-assets",
   function* (data) {
+    console.log("🎉 [TRANSFER-ASSETS] Transaction receipt:");
+    console.log(JSON.stringify(data.parsedInput.payload, null, 2));
+    const contract_address =
+      contractAddressesEvmMain().chain31337["Erc721DevModule#Erc721Dev"];
+    console.log("🎉 [TRANSFER-ASSETS] Contract address:", contract_address);
     const { to, tokenId } = data.parsedInput.payload;
-    if (!storage[tokenId]) {
-      storage[tokenId] = { properties: {}, owner: "" };
-    }
-    storage[tokenId].owner = to;
-    // yield* World.resolve(insertStateMachineInput, {
-    //   inputs: `transfer ${value} from ${from} to ${to}`,
-    //   block_height: data.blockHeight,
-    // });
+    yield* World.resolve(insertEvmMidnight, {
+      contract_address,
+      token_id: tokenId,
+      owner: to,
+      block_height: data.blockHeight,
+    });
+    return;
+  },
+);
+
+stm.addStateTransition(
+  "transfer",
+  function* (data) {
+    console.log("🎉 [TRANSFER-ASSETS] Transaction receipt:");
+    console.log(JSON.stringify(data.parsedInput.payload, null, 2));
+    const contract_address =
+      contractAddressesEvmMain().chain31337["Erc721DevModule#Erc721Dev"];
+    console.log("🎉 [TRANSFER-ASSETS] Contract address:", contract_address);
+    const { to, tokenId } = data.parsedInput.payload;
+    yield* World.resolve(insertEvmMidnight, {
+      contract_address,
+      token_id: tokenId,
+      owner: to,
+      block_height: data.blockHeight,
+    });
     return;
   },
 );
