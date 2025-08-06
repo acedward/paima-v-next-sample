@@ -120,6 +120,7 @@ import DOMException from 'node-domexception'
 import File from './file.js'
 import Blob from './index.js'
 
-import { promises as stat } from \`node:fs\`"
+import { promises as stat } from 'node:fs'
+"
 
 echo "✅ All patches applied successfully"
