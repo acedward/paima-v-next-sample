@@ -18,17 +18,17 @@ export const grammar = {
       }),
     ],
   ],
-  "transfer": [
-    [
-      "payload",
-      Type.Object({
-        to: Type.String(),
-        from: Type.String(),
-        tokenId: Type.String(),
-        isBurn: Type.Boolean(),
-      }),
-    ],
-  ],
+  // "transfer": [
+  //   [
+  //     "payload",
+  //     Type.Object({
+  //       to: Type.String(),
+  //       from: Type.String(),
+  //       tokenId: Type.String(),
+  //       isBurn: Type.Boolean(),
+  //     }),
+  //   ],
+  // ],
   // Midnight contract state with proper EncodedStateValue schema
   midnightContractState: [
     [

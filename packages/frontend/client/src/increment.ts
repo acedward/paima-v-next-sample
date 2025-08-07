@@ -1,22 +1,3 @@
-// This file is part of midnightntwrk/example-counter.
-// Copyright (C) 2025 Midnight Foundation
-// SPDX-License-Identifier: Apache-2.0
-// Licensed under the Apache License, Version 2.0 (the "License");
-// You may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-// import * as WS from "ws";
-// globalThis.WebSocket = WS.WebSocket;
 import {
   type ContractAddress,
   NetworkId,
@@ -28,7 +9,6 @@ import {
 } from "@example/my-midnight-contract";
 import {
   type CoinInfo,
-  nativeToken,
   Transaction,
   type TransactionId,
 } from "@midnight-ntwrk/ledger";
@@ -39,7 +19,6 @@ import {
 } from "@midnight-ntwrk/midnight-js-contracts";
 import { httpClientProofProvider } from "@midnight-ntwrk/midnight-js-http-client-proof-provider";
 import { indexerPublicDataProvider } from "@midnight-ntwrk/midnight-js-indexer-public-data-provider";
-// import { NodeZkConfigProvider } from "@midnight-ntwrk/midnight-js-node-zk-config-provider";
 import { FetchZkConfigProvider } from "@midnight-ntwrk/midnight-js-fetch-zk-config-provider";
 
 import {
@@ -53,24 +32,23 @@ import {
   type WalletProvider,
 } from "@midnight-ntwrk/midnight-js-types";
 import { type Resource, WalletBuilder } from "@midnight-ntwrk/wallet";
-import { type Wallet } from "@midnight-ntwrk/wallet-api";
+import type { Wallet } from "@midnight-ntwrk/wallet-api";
 import { Transaction as ZswapTransaction } from "@midnight-ntwrk/zswap";
 import * as Rx from "rxjs";
 import { levelPrivateStateProvider } from "@midnight-ntwrk/midnight-js-level-private-state-provider";
-import {
-  assertIsContractAddress,
-  toHex,
-} from "@midnight-ntwrk/midnight-js-utils";
+import { assertIsContractAddress } from "@midnight-ntwrk/midnight-js-utils";
 import {
   getLedgerNetworkId,
   getZswapNetworkId,
   setNetworkId,
 } from "@midnight-ntwrk/midnight-js-network-id";
 import { dirname, resolve } from "node:path";
-import * as fs from "node:fs";
-import { Buffer } from "node:buffer";
-
-const exists = fs.exists;
+import {
+  BASE_URL_MIDNIGHT_INDEXER_API,
+  BASE_URL_MIDNIGHT_INDEXER_WS,
+  BASE_URL_MIDNIGHT_NODE,
+  BASE_URL_PROOF_SERVER,
+} from "./config.ts";
 
 // Inlined common types for standalone script
 type CounterCircuits = ImpureCircuitId<Counter.Contract<CounterPrivateState>>;
@@ -121,10 +99,10 @@ class StandaloneConfig implements Config {
     "standalone",
     `${new Date().toISOString()}.log`,
   );
-  indexer = "http://127.0.0.1:8088/api/v1/graphql";
-  indexerWS = "ws://127.0.0.1:8088/api/v1/graphql/ws";
-  node = "http://127.0.0.1:9944";
-  proofServer = "http://127.0.0.1:6300";
+  indexer = BASE_URL_MIDNIGHT_INDEXER_API;
+  indexerWS = BASE_URL_MIDNIGHT_INDEXER_WS;
+  node = BASE_URL_MIDNIGHT_NODE;
+  proofServer = BASE_URL_PROOF_SERVER;
   constructor() {
     setNetworkId("Undeployed" as any);
   }
@@ -258,25 +236,6 @@ const createWalletAndMidnightProvider = async (
     },
   };
 };
-
-// const waitForFunds = (wallet: Wallet) =>
-//   Rx.firstValueFrom(
-//     wallet.state().pipe(
-//       Rx.throttleTime(10_000),
-//       Rx.tap((state: any) => {
-//         const applyGap = state.syncProgress?.lag.applyGap ?? 0n;
-//         const sourceGap = state.syncProgress?.lag.sourceGap ?? 0n;
-//         console.log(
-//           `Waiting for funds. Backend lag: ${sourceGap}, wallet lag: ${applyGap}, transactions=${state.transactionHistory.length}`,
-//         );
-//       }),
-//       Rx.filter((state: any) => {
-//         return state.syncProgress?.synced === true;
-//       }),
-//       Rx.map((s: any) => s.balances[nativeToken()] ?? 0n),
-//       Rx.filter((balance) => balance > 0n),
-//     ),
-//   );
 
 const buildWalletAndWaitForFunds = async (
   { indexer, indexerWS, node, proofServer }: Config,

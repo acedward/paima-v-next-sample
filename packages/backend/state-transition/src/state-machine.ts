@@ -100,24 +100,24 @@ stm.addStateTransition(
   },
 );
 
-stm.addStateTransition(
-  "transfer",
-  function* (data) {
-    console.log("🎉 [TRANSFER-ASSETS] Transaction receipt:");
-    console.log(JSON.stringify(data.parsedInput.payload, null, 2));
-    const contract_address =
-      contractAddressesEvmMain().chain31337["Erc721DevModule#Erc721Dev"];
-    console.log("🎉 [TRANSFER-ASSETS] Contract address:", contract_address);
-    const { to, tokenId } = data.parsedInput.payload;
-    yield* World.resolve(insertEvmMidnight, {
-      contract_address,
-      token_id: tokenId,
-      owner: to,
-      block_height: data.blockHeight,
-    });
-    return;
-  },
-);
+// stm.addStateTransition(
+//   "transfer",
+//   function* (data) {
+//     console.log("🎉 [TRANSFER-ASSETS] Transaction receipt:");
+//     console.log(JSON.stringify(data.parsedInput.payload, null, 2));
+//     const contract_address =
+//       contractAddressesEvmMain().chain31337["Erc721DevModule#Erc721Dev"];
+//     console.log("🎉 [TRANSFER-ASSETS] Contract address:", contract_address);
+//     const { to, tokenId } = data.parsedInput.payload;
+//     yield* World.resolve(insertEvmMidnight, {
+//       contract_address,
+//       token_id: tokenId,
+//       owner: to,
+//       block_height: data.blockHeight,
+//     });
+//     return;
+//   },
+// );
 
 // stm.finalize(); // this avoids people dynamically calling stm.addStateTransition after initialization
 

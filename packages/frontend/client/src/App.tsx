@@ -16,17 +16,17 @@ import { WalletProvider } from "./contexts/WalletContext.tsx";
 function App() {
   // Use custom hooks for data management
   const {
-    chainConfigs,
-    newBlockIndices,
+    // chainConfigs,
+    // newBlockIndices,
     latestBlock,
     isConnected,
   } = useBlockchainData();
 
-  const {
-    primitiveData,
-    staticTableData,
-    scheduledData,
-  } = useTableData();
+  // const {
+  //   primitiveData,
+  //   staticTableData,
+  //   scheduledData,
+  // } = useTableData();
 
   // Error handling for uncaught promises
   useEffect(() => {
@@ -67,13 +67,6 @@ function App() {
           latestBlock={latestBlock}
           isConnected={isConnected}
         />
-        {
-          /*
-        <ColumnsContainer
-          chainConfigs={chainConfigs}
-          newBlockIndices={newBlockIndices}
-        /> */
-        }
 
         <WalletDemo />
       </div>

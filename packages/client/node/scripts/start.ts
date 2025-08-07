@@ -21,7 +21,7 @@ const config = Value.Parse(OrchestratorConfig, {
   // Launch my processes
   processesToLaunch: [
     startEvm,
-    startCardano,
+    // startCardano,
     startMidnight,
     // startAvail,
   ],
